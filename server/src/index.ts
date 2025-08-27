@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
-import { Pool } from 'pg';
+import { createClient } from '@supabase/supabase-js';
 import { randomUUID } from "crypto";
 import Razorpay from 'razorpay';
 dotenv.config();
@@ -17,12 +17,17 @@ app.use(
   })
 );
 
-// Initialize PostgreSQL connection
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:Rishi%231203@localhost:5432/dating',
-});
+// Initialize Supabase client
+const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
 
-console.log('PostgreSQL connection initialized');
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing Supabase environment variables');
+}
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+console.log('Supabase connection initialized');
 
 // Health
 app.get("/api/health", (_req, res) => {
@@ -32,16 +37,24 @@ app.get("/api/health", (_req, res) => {
 // Database test endpoint
 app.get("/api/test-db", async (req, res) => {
   try {
-    const result = await pool.query('SELECT COUNT(*) as count FROM users');
+    const { data, error } = await supabase
+      .from('users')
+      .select('count')
+      .limit(1);
+    
+    if (error) {
+      throw error;
+    }
     
     res.json({ 
       ok: true, 
-      message: 'PostgreSQL connection successful',
-      user_count: result.rows[0].count
+      message: 'Supabase connection successful',
+      supabase_url: supabaseUrl,
+      supabase_key: supabaseAnonKey
     });
   } catch (err) {
-    console.error("PostgreSQL connection test failed:", err);
-    res.status(500).json({ error: "PostgreSQL connection failed", details: err instanceof Error ? err.message : 'Unknown error' });
+    console.error("Supabase connection test failed:", err);
+    res.status(500).json({ error: "Supabase connection failed", details: err instanceof Error ? err.message : 'Unknown error' });
   }
 });
 
@@ -52,6 +65,25 @@ app.get("/api/test-razorpay", (req, res) => {
     razorpay_secret: process.env.RAZORPAY_SECRET,
     current_key: process.env.RAZORPAY_KEY_ID || 'rzp_test_1234567890'
   });
+});
+
+// Debug: List all users (for testing)
+app.get("/api/debug/users", async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, name, status, login_id, created_at')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    res.json({ users: data });
+  } catch (err) {
+    console.error('Error fetching users:', err);
+    res.status(500).json({ error: "Failed to fetch users" });
+  }
 });
 
 // Public: registration (collect details for review)
@@ -105,25 +137,45 @@ app.post("/api/register", async (req, res) => {
     
     const userId = randomUUID();
 
-    // Insert user into PostgreSQL
-    const userResult = await pool.query(
-      'INSERT INTO users (id, name, gender, date_of_birth, whatsapp_number, instagram_handle, location, custom_location, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
-      [userId, name, gender, dateOfBirth, whatsappNumber, instagramHandle, finalLocation, customLocation, 'pending']
-    );
+    // Insert user into Supabase
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .insert({
+        id: userId,
+        name,
+        gender,
+        date_of_birth: dateOfBirth,
+        whatsapp_number: whatsappNumber,
+        instagram_handle: instagramHandle,
+        location: finalLocation,
+        custom_location: customLocation,
+        status: 'pending'
+      })
+      .select()
+      .single();
 
-    if (userResult.rowCount === 0) {
-      console.error('User insertion failed');
+    if (userError) {
+      console.error('User insertion error:', userError);
       return res.status(500).json({ error: "Failed to register user" });
     }
 
-    // Insert profile into PostgreSQL
-    const profileResult = await pool.query(
-      'INSERT INTO profiles (user_id, bio, relationship_status, interest_1, interest_1_desc, interest_2, interest_2_desc, interest_3, interest_3_desc) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
-      [userId, bio, relationshipStatus, interest1, interest1Desc, interest2, interest2Desc, interest3, interest3Desc]
-    );
+    // Insert profile into Supabase
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .insert({
+        user_id: userId,
+        bio,
+        relationship_status: relationshipStatus,
+        interest_1: interest1,
+        interest_1_desc: interest1Desc,
+        interest_2: interest2,
+        interest_2_desc: interest2Desc,
+        interest_3: interest3,
+        interest_3_desc: interest3Desc
+      });
 
-    if (profileResult.rowCount === 0) {
-      console.error('Profile insertion failed');
+    if (profileError) {
+      console.error('Profile insertion error:', profileError);
       return res.status(500).json({ error: "Failed to register profile" });
     }
 
@@ -137,19 +189,22 @@ app.post("/api/register", async (req, res) => {
 // Admin: list pending
 app.get("/api/admin/pending", async (_req, res) => {
   try {
-    const result = await pool.query(`
-      SELECT 
-        u.id, u.name, u.gender, u.date_of_birth, u.whatsapp_number, 
-        u.instagram_handle, u.location, u.custom_location,
-        p.bio, p.relationship_status, p.interest_1, p.interest_1_desc, 
-        p.interest_2, p.interest_2_desc, p.interest_3, p.interest_3_desc
-      FROM users u
-      INNER JOIN profiles p ON u.id = p.user_id
-      WHERE u.status = 'pending'
-      ORDER BY u.created_at ASC
-    `);
+    const { data, error } = await supabase
+      .from('users')
+      .select(`
+        id, name, gender, date_of_birth, whatsapp_number, instagram_handle, location, custom_location,
+        profiles!inner (
+          bio, relationship_status, interest_1, interest_1_desc, interest_2, interest_2_desc, interest_3, interest_3_desc
+        )
+      `)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true });
 
-    res.json(result.rows);
+    if (error) {
+      throw error;
+    }
+
+    res.json(data);
   } catch (error) {
     console.error('Error fetching pending users:', error);
     res.status(500).json({ error: "Failed to fetch pending" });
@@ -169,12 +224,19 @@ app.post("/api/admin/approve", async (req, res) => {
     const bcrypt = await import('bcrypt');
     const passwordHash = await bcrypt.hash(rawPassword, 10);
 
-    const result = await pool.query(
-      'UPDATE users SET status = $1, login_id = $2, password_hash = $3 WHERE id = $4 AND status = $5 RETURNING id, login_id',
-      ['approved', loginId, passwordHash, userId, 'pending']
-    );
+    const { data, error } = await supabase
+      .from('users')
+      .update({
+        status: 'approved',
+        login_id: loginId,
+        password_hash: passwordHash
+      })
+      .eq('id', userId)
+      .eq('status', 'pending')
+      .select('id, login_id')
+      .single();
 
-    if (result.rowCount === 0) {
+    if (error || !data) {
       return res.status(404).json({ error: "User not found or not pending" });
     }
 
@@ -191,26 +253,26 @@ app.post("/api/login", async (req, res) => {
   if (!loginId || !password) return res.status(400).json({ error: "Missing" });
   
   try {
-    const result = await pool.query(
-      'SELECT id, password_hash FROM users WHERE login_id = $1 AND status = $2',
-      [loginId, 'approved']
-    );
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, password_hash')
+      .eq('login_id', loginId)
+      .eq('status', 'approved')
+      .single();
 
-    if (result.rowCount === 0) {
+    if (error || !data) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    const user = result.rows[0];
-
     // Verify password
     const bcrypt = await import('bcrypt');
-    const isValid = await bcrypt.compare(password, user.password_hash);
+    const isValid = await bcrypt.compare(password, data.password_hash);
     
     if (!isValid) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    res.json({ ok: true, userId: user.id });
+    res.json({ ok: true, userId: data.id });
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({ error: "Login failed" });
@@ -223,22 +285,29 @@ app.get("/api/me", async (req, res) => {
   if (!userId) return res.status(400).json({ error: "Missing userId" });
   
   try {
-    const result = await pool.query(`
-      SELECT 
-        u.id, u.name, u.gender, u.date_of_birth, u.whatsapp_number, 
-        u.instagram_handle, u.status, u.location, u.custom_location,
-        p.bio, p.relationship_status, p.interest_1, p.interest_1_desc, 
-        p.interest_2, p.interest_2_desc, p.interest_3, p.interest_3_desc
-      FROM users u
-      LEFT JOIN profiles p ON u.id = p.user_id
-      WHERE u.id = $1
-    `, [userId]);
+    const { data, error } = await supabase
+      .from('users')
+      .select(`
+        id, name, gender, date_of_birth, whatsapp_number, instagram_handle, status, location, custom_location,
+        profiles (
+          bio, relationship_status, interest_1, interest_1_desc, interest_2, interest_2_desc, interest_3, interest_3_desc
+        )
+      `)
+      .eq('id', userId)
+      .single();
 
-    if (result.rowCount === 0) {
+    if (error || !data) {
       return res.status(404).json({ error: "Not found" });
     }
 
-    res.json(result.rows[0]);
+    // Flatten the data structure
+    const userData = {
+      ...data,
+      ...data.profiles
+    };
+    delete userData.profiles;
+
+    res.json(userData);
   } catch (err) {
     console.error('Error fetching user profile:', err);
     res.status(500).json({ error: "Failed to load" });
@@ -252,16 +321,17 @@ app.put("/api/me", async (req, res) => {
   
   try {
     // Check if user exists and is approved
-    const userResult = await pool.query(
-      'SELECT status FROM users WHERE id = $1',
-      [userId]
-    );
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('status')
+      .eq('id', userId)
+      .single();
 
-    if (userResult.rowCount === 0) {
+    if (userError || !userData) {
       return res.status(404).json({ error: "Not found" });
     }
 
-    if (userResult.rows[0].status !== 'approved') {
+    if (userData.status !== 'approved') {
       return res.status(403).json({ error: "Not approved" });
     }
 
@@ -285,19 +355,23 @@ app.put("/api/me", async (req, res) => {
     }
 
     // Upsert profile data
-    const profileResult = await pool.query(`
-      INSERT INTO profiles (user_id, bio, relationship_status, interest_1, interest_1_desc, interest_2, interest_2_desc, interest_3, interest_3_desc)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-      ON CONFLICT (user_id) DO UPDATE SET
-        bio = EXCLUDED.bio,
-        relationship_status = EXCLUDED.relationship_status,
-        interest_1 = EXCLUDED.interest_1,
-        interest_1_desc = EXCLUDED.interest_1_desc,
-        interest_2 = EXCLUDED.interest_2,
-        interest_2_desc = EXCLUDED.interest_2_desc,
-        interest_3 = EXCLUDED.interest_3,
-        interest_3_desc = EXCLUDED.interest_3_desc
-    `, [userId, bio || '', relationshipStatus || null, interest1 || '', interest1Desc || '', interest2 || '', interest2Desc || '', interest3 || '', interest3Desc || '']);
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .upsert({
+        user_id: userId,
+        bio: bio || '',
+        relationship_status: relationshipStatus || null,
+        interest_1: interest1 || '',
+        interest_1_desc: interest1Desc || '',
+        interest_2: interest2 || '',
+        interest_2_desc: interest2Desc || '',
+        interest_3: interest3 || '',
+        interest_3_desc: interest3Desc || ''
+      });
+
+    if (profileError) {
+      throw profileError;
+    }
 
     res.json({ ok: true });
   } catch (err) {
@@ -311,19 +385,30 @@ app.get("/api/feed", async (req, res) => {
   const userId = String(req.query.userId || "");
   
   try {
-    const result = await pool.query(`
-      SELECT 
-        u.id, u.name, u.gender, u.location, u.custom_location,
-        p.bio, p.relationship_status, p.interest_1, p.interest_1_desc, 
-        p.interest_2, p.interest_2_desc, p.interest_3, p.interest_3_desc
-      FROM users u
-      INNER JOIN profiles p ON u.id = p.user_id
-      WHERE u.status = 'approved' AND u.id != $1
-      ORDER BY u.created_at DESC
-      LIMIT 50
-    `, [userId]);
+    const { data, error } = await supabase
+      .from('users')
+      .select(`
+        id, name, gender, location, custom_location,
+        profiles!inner (
+          bio, relationship_status, interest_1, interest_1_desc, interest_2, interest_2_desc, interest_3, interest_3_desc
+        )
+      `)
+      .eq('status', 'approved')
+      .neq('id', userId)
+      .order('created_at', { ascending: false })
+      .limit(50);
 
-    res.json(result.rows);
+    if (error) {
+      throw error;
+    }
+
+    // Flatten the data structure
+    const flattenedData = data.map(item => ({
+      ...item,
+      ...item.profiles
+    }));
+
+    res.json(flattenedData);
   } catch (err) {
     console.error('Error fetching feed:', err);
     res.status(500).json({ error: "Failed to load feed" });
@@ -337,13 +422,17 @@ app.post("/api/requests", async (req, res) => {
   
   try {
     const id = randomUUID();
-    const result = await pool.query(
-      'INSERT INTO connection_requests (id, from_user_id, to_user_id, message) VALUES ($1, $2, $3, $4)',
-      [id, fromUserId, toUserId, (message || "").slice(0, 200)]
-    );
+    const { error } = await supabase
+      .from('connection_requests')
+      .insert({
+        id,
+        from_user_id: fromUserId,
+        to_user_id: toUserId,
+        message: (message || "").slice(0, 200)
+      });
 
-    if (result.rowCount === 0) {
-      throw new Error('Failed to insert request');
+    if (error) {
+      throw error;
     }
 
     res.json({ sent: true, id });
@@ -359,37 +448,41 @@ app.post("/api/requests/:id/accept", async (req, res) => {
   
   try {
     // Get the request details first
-    const requestResult = await pool.query(
-      'SELECT from_user_id, to_user_id FROM connection_requests WHERE id = $1 AND status = $2',
-      [id, 'pending']
-    );
+    const { data: requestData, error: requestError } = await supabase
+      .from('connection_requests')
+      .select('from_user_id, to_user_id')
+      .eq('id', id)
+      .eq('status', 'pending')
+      .single();
 
-    if (requestResult.rowCount === 0) {
+    if (requestError || !requestData) {
       return res.status(404).json({ error: "Request not found or already processed" });
     }
 
-    const request = requestResult.rows[0];
-    const a = request.from_user_id;
-    const b = request.to_user_id;
+    const a = requestData.from_user_id;
+    const b = requestData.to_user_id;
 
     // Create the match
-    const matchResult = await pool.query(
-      'INSERT INTO matches (id, user_a_id, user_b_id) VALUES ($1, $2, $3) ON CONFLICT (user_a_id, user_b_id) DO NOTHING',
-      [randomUUID(), a < b ? a : b, a < b ? b : a]
-    );
+    const { error: matchError } = await supabase
+      .from('matches')
+      .insert({
+        id: randomUUID(),
+        user_a_id: a < b ? a : b,
+        user_b_id: a < b ? b : a
+      });
 
-    if (matchResult.rowCount === 0) {
-      console.log('Match already exists or failed to create');
+    if (matchError) {
+      console.error('Error creating match:', matchError);
     }
 
     // Delete the request
-    const deleteResult = await pool.query(
-      'DELETE FROM connection_requests WHERE id = $1',
-      [id]
-    );
+    const { error: deleteError } = await supabase
+      .from('connection_requests')
+      .delete()
+      .eq('id', id);
 
-    if (deleteResult.rowCount === 0) {
-      console.log('Failed to delete request');
+    if (deleteError) {
+      console.error('Error deleting request:', deleteError);
     }
 
     console.log(`Match created and request deleted for users ${a} and ${b}`);
@@ -405,29 +498,56 @@ app.get("/api/matches", async (req, res) => {
   const userId = String(req.query.userId || "");
   
   try {
-    const result = await pool.query(`
-      SELECT 
-        m.id,
-        CASE 
-          WHEN m.user_a_id = $1 THEN m.user_b_id 
-          ELSE m.user_a_id 
-        END as other_user_id,
-        u.instagram_handle, u.location, u.custom_location,
-        p.bio, p.relationship_status, p.interest_1, p.interest_1_desc, 
-        p.interest_2, p.interest_2_desc, p.interest_3, p.interest_3_desc
-      FROM matches m
-      JOIN users u ON (
-        CASE 
-          WHEN m.user_a_id = $1 THEN m.user_b_id 
-          ELSE m.user_a_id 
-        END = u.id
-      )
-      LEFT JOIN profiles p ON u.id = p.user_id
-      WHERE m.user_a_id = $1 OR m.user_b_id = $1
-      ORDER BY m.created_at DESC
-    `, [userId]);
+    const { data, error } = await supabase
+      .from('matches')
+      .select(`
+        id,
+        user_a_id,
+        user_b_id,
+        user_a:users!matches_user_a_id_fkey (
+          id, instagram_handle, location, custom_location,
+          profiles (
+            bio, relationship_status, interest_1, interest_1_desc, interest_2, interest_2_desc, interest_3, interest_3_desc
+          )
+        ),
+        user_b:users!matches_user_b_id_fkey (
+          id, instagram_handle, location, custom_location,
+          profiles (
+            bio, relationship_status, interest_1, interest_1_desc, interest_2, interest_2_desc, interest_3, interest_3_desc
+          )
+        )
+      `)
+      .or(`user_a_id.eq.${userId},user_b_id.eq.${userId}`)
+      .order('created_at', { ascending: false });
 
-    res.json(result.rows);
+    if (error) {
+      throw error;
+    }
+
+    // Process the data to get the other user's information
+    const processedData = data.map(match => {
+      const isUserA = match.user_a_id === userId;
+      const otherUser = isUserA ? match.user_b : match.user_a;
+      const otherUserId = isUserA ? match.user_b_id : match.user_a_id;
+      
+      return {
+        id: match.id,
+        other_user_id: otherUserId,
+        bio: otherUser.profiles?.[0]?.bio || '',
+        relationship_status: otherUser.profiles?.[0]?.relationship_status || '',
+        interest_1: otherUser.profiles?.[0]?.interest_1 || '',
+        interest_1_desc: otherUser.profiles?.[0]?.interest_1_desc || '',
+        interest_2: otherUser.profiles?.[0]?.interest_2 || '',
+        interest_2_desc: otherUser.profiles?.[0]?.interest_2_desc || '',
+        interest_3: otherUser.profiles?.[0]?.interest_3 || '',
+        interest_3_desc: otherUser.profiles?.[0]?.interest_3_desc || '',
+        instagram_handle: otherUser.instagram_handle,
+        location: otherUser.location,
+        custom_location: otherUser.custom_location
+      };
+    });
+
+    res.json(processedData);
   } catch (err) {
     console.error('Error fetching matches:', err);
     res.status(500).json({ error: "Failed to fetch matches" });
@@ -443,35 +563,64 @@ app.post("/api/chat/send", async (req, res) => {
   
   try {
     // Ensure users are matched before allowing chat
-    const matchResult = await pool.query(
-      'SELECT id FROM matches WHERE (user_a_id = $1 AND user_b_id = $2) OR (user_a_id = $2 AND user_b_id = $1)',
-      [fromUserId, toUserId]
-    );
+    const { data: matchData, error: matchError } = await supabase
+      .from('matches')
+      .select('id')
+      .or(`and(user_a_id.eq.${fromUserId},user_b_id.eq.${toUserId}),and(user_a_id.eq.${toUserId},user_b_id.eq.${fromUserId})`)
+      .single();
 
-    if (matchResult.rowCount === 0) {
+    if (matchError || !matchData) {
       console.log(`Chat blocked: Users ${fromUserId} and ${toUserId} are not matched`);
       return res.status(403).json({ error: "Chat allowed only between matched users" });
     }
 
-    // Create or update conversation
-    const convResult = await pool.query(`
-      INSERT INTO conversations (id, user_a_id, user_b_id)
-      VALUES ($1, $2, $3)
-      ON CONFLICT (user_a_id, user_b_id) DO UPDATE SET updated_at = now()
-      RETURNING id
-    `, [randomUUID(), fromUserId < toUserId ? fromUserId : toUserId, fromUserId < toUserId ? toUserId : fromUserId]);
+    // First check if conversation exists
+    const { data: existingConv, error: checkError } = await supabase
+      .from('conversations')
+      .select('id')
+      .or(`and(user_a_id.eq.${fromUserId < toUserId ? fromUserId : toUserId},user_b_id.eq.${fromUserId < toUserId ? toUserId : fromUserId})`)
+      .single();
 
-    const convId = convResult.rows[0].id;
-    console.log(`Conversation ID: ${convId}`);
+    let convId;
+    
+    if (existingConv) {
+      // Conversation exists, use its ID
+      convId = existingConv.id;
+      console.log(`Using existing conversation ID: ${convId}`);
+    } else {
+      // Create new conversation
+      const { data: newConv, error: createError } = await supabase
+        .from('conversations')
+        .insert({
+          id: randomUUID(),
+          user_a_id: fromUserId < toUserId ? fromUserId : toUserId,
+          user_b_id: fromUserId < toUserId ? toUserId : fromUserId
+        })
+        .select('id')
+        .single();
+
+      if (createError) {
+        throw createError;
+      }
+      
+      convId = newConv.id;
+      console.log(`Created new conversation ID: ${convId}`);
+    }
+
+
 
     // Send message
-    const messageResult = await pool.query(
-      'INSERT INTO messages (id, conversation_id, sender_id, content) VALUES ($1, $2, $3, $4)',
-      [randomUUID(), convId, fromUserId, String(content).slice(0, 1000)]
-    );
+    const { error: messageError } = await supabase
+      .from('messages')
+      .insert({
+        id: randomUUID(),
+        conversation_id: convId,
+        sender_id: fromUserId,
+        content: String(content).slice(0, 1000)
+      });
 
-    if (messageResult.rowCount === 0) {
-      throw new Error('Failed to insert message');
+    if (messageError) {
+      throw messageError;
     }
 
     console.log(`Message sent successfully`);
@@ -491,26 +640,43 @@ app.get("/api/chat/history", async (req, res) => {
   
   try {
     // ensure matched
-    const matchResult = await pool.query(
-      'SELECT id FROM matches WHERE (user_a_id = $1 AND user_b_id = $2) OR (user_a_id = $2 AND user_b_id = $1)',
-      [a, b]
-    );
+    const { data: matchData, error: matchError } = await supabase
+      .from('matches')
+      .select('id')
+      .or(`and(user_a_id.eq.${a},user_b_id.eq.${b}),and(user_a_id.eq.${b},user_b_id.eq.${a})`)
+      .single();
 
-    if (matchResult.rowCount === 0) {
+    if (matchError || !matchData) {
       console.log(`Chat history blocked: Users ${a} and ${b} are not matched`);
       return res.status(403).json({ error: "Not matched" });
     }
     
-    const result = await pool.query(`
-      SELECT m.id, m.sender_id, m.content, m.created_at
-      FROM messages m
-      JOIN conversations c ON m.conversation_id = c.id
-      WHERE (c.user_a_id = $1 AND c.user_b_id = $2) OR (c.user_a_id = $2 AND c.user_b_id = $1)
-      ORDER BY m.created_at ASC
-    `, [a < b ? a : b, a < b ? b : a]);
+    // First get the conversation ID
+    const { data: historyConvData, error: convError } = await supabase
+      .from('conversations')
+      .select('id')
+      .or(`and(user_a_id.eq.${a < b ? a : b},user_b_id.eq.${a < b ? b : a})`)
+      .single();
 
-    console.log(`Chat history: Found ${result.rows.length} messages for users ${a} and ${b}`);
-    res.json(result.rows);
+    if (convError) {
+      // No conversation exists yet, return empty array
+      console.log(`No conversation found for users ${a} and ${b}`);
+      return res.json([]);
+    }
+
+    // Then get messages for that conversation
+    const { data, error } = await supabase
+      .from('messages')
+      .select('id, sender_id, content, created_at')
+      .eq('conversation_id', historyConvData.id)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      throw error;
+    }
+    
+    console.log(`Chat history: Found ${data?.length || 0} messages for users ${a} and ${b}`);
+    res.json(data || []);
   } catch (err) {
     console.error('Failed to load chat history:', err);
     res.status(500).json({ error: "Failed to load history", details: err instanceof Error ? err.message : 'Unknown error' });
@@ -523,19 +689,38 @@ app.get("/api/requests/incoming", async (req, res) => {
   if (!userId) return res.status(400).json({ error: "Missing userId" });
   
   try {
-    const result = await pool.query(`
-      SELECT 
-        cr.id, cr.from_user_id, cr.message, cr.created_at,
-        u.name, u.location, u.custom_location,
-        p.bio
-      FROM connection_requests cr
-      JOIN users u ON cr.from_user_id = u.id
-      LEFT JOIN profiles p ON u.id = p.user_id
-      WHERE cr.to_user_id = $1 AND cr.status = 'pending'
-      ORDER BY cr.created_at DESC
-    `, [userId]);
+    const { data, error } = await supabase
+      .from('connection_requests')
+      .select(`
+        id, from_user_id, message, created_at,
+        users!connection_requests_from_user_id_fkey (
+          name, location, custom_location,
+          profiles (
+            bio
+          )
+        )
+      `)
+      .eq('to_user_id', userId)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false });
 
-    res.json(result.rows);
+    if (error) {
+      throw error;
+    }
+
+    // Flatten the data structure
+    const flattenedData = data.map(item => ({
+      id: item.id,
+      from_user_id: item.from_user_id,
+      message: item.message,
+      created_at: item.created_at,
+      bio: item.users.profiles?.bio || '',
+      name: item.users.name,
+      location: item.users.location,
+      custom_location: item.users.custom_location
+    }));
+
+    res.json(flattenedData);
   } catch (err) {
     console.error('Error fetching incoming requests:', err);
     res.status(500).json({ error: "Failed to fetch incoming" });
@@ -548,12 +733,17 @@ app.get("/api/user/pack", async (req, res) => {
   if (!userId) return res.status(400).json({ error: "Missing userId" });
   
   try {
-    const result = await pool.query(
-      'SELECT pack_id, pack_name, matches_total, matches_remaining, requests_total, requests_remaining, amount_paid, purchased_at, expires_at FROM user_packs WHERE user_id = $1',
-      [userId]
-    );
+    const { data, error } = await supabase
+      .from('user_packs')
+      .select('pack_id, pack_name, matches_total, matches_remaining, requests_total, requests_remaining, amount_paid, purchased_at, expires_at')
+      .eq('user_id', userId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
+      throw error;
+    }
     
-    res.json(result.rows[0] || null); // Return null if no pack found
+    res.json(data || null); // Return null if no pack found
   } catch (err) {
     console.error('Failed to fetch user pack:', err);
     res.status(500).json({ error: "Failed to fetch pack information" });
@@ -572,12 +762,14 @@ app.post("/api/payment/create-order", async (req, res) => {
   
   // Verify user exists and is approved
   try {
-    const userResult = await pool.query(
-      'SELECT id, status FROM users WHERE id = $1 AND status = $2',
-      [userId, 'approved']
-    );
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('id, status')
+      .eq('id', userId)
+      .eq('status', 'approved')
+      .single();
     
-    if (userResult.rowCount === 0) {
+    if (userError || !userData) {
       console.log('User not found or not approved:', userId);
       return res.status(401).json({ error: "User not found or not approved" });
     }
@@ -605,13 +797,19 @@ app.post("/api/payment/create-order", async (req, res) => {
     console.log('Razorpay order created:', razorpayOrder.id);
     
     // Store order in database
-    const orderResult = await pool.query(
-      'INSERT INTO payment_orders (user_id, razorpay_order_id, pack_id, amount, currency, status) VALUES ($1, $2, $3, $4, $5, $6)',
-      [userId, razorpayOrder.id, packId, amount * 100, 'INR', 'created']
-    );
+    const { error: orderError } = await supabase
+      .from('payment_orders')
+      .insert({
+        user_id: userId,
+        razorpay_order_id: razorpayOrder.id,
+        pack_id: packId,
+        amount: amount * 100,
+        currency: 'INR',
+        status: 'created'
+      });
 
-    if (orderResult.rowCount === 0) {
-      throw new Error('Failed to store order');
+    if (orderError) {
+      throw orderError;
     }
     
     console.log(`Order stored in DB: ${razorpayOrder.id} for user ${userId}, pack ${packId}, amount ₹${amount}`);
@@ -640,12 +838,14 @@ app.post("/api/payment/activate-pack-manual", async (req, res) => {
   
   // Verify user exists and is approved
   try {
-    const userResult = await pool.query(
-      'SELECT id FROM users WHERE id = $1 AND status = $2',
-      [userId, 'approved']
-    );
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', userId)
+      .eq('status', 'approved')
+      .single();
     
-    if (userResult.rowCount === 0) {
+    if (userError || !userData) {
       console.log('User not found or not approved:', userId);
       return res.status(401).json({ error: "User not found or not approved" });
     }
@@ -668,33 +868,40 @@ app.post("/api/payment/activate-pack-manual", async (req, res) => {
     
     // Create a manual payment order record
     const manualOrderId = `manual_qr_${Date.now()}_${userId.slice(-8)}`;
-    const orderResult = await pool.query(
-      'INSERT INTO payment_orders (user_id, razorpay_order_id, pack_id, amount, currency, status, razorpay_payment_id) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-      [userId, manualOrderId, packId, amount || 100, 'INR', 'paid', 'manual_qr_payment']
-    );
+    const { error: orderError } = await supabase
+      .from('payment_orders')
+      .insert({
+        user_id: userId,
+        razorpay_order_id: manualOrderId,
+        pack_id: packId,
+        amount: amount || 100,
+        currency: 'INR',
+        status: 'paid',
+        razorpay_payment_id: 'manual_qr_payment'
+      });
 
-    if (orderResult.rowCount === 0) {
-      throw new Error('Failed to create manual order');
+    if (orderError) {
+      throw orderError;
     }
     
     // Activate user pack
-    const packResult = await pool.query(`
-      INSERT INTO user_packs (user_id, pack_id, pack_name, matches_total, matches_remaining, requests_total, requests_remaining, amount_paid, purchased_at, expires_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-      ON CONFLICT (user_id) DO UPDATE SET
-        pack_id = EXCLUDED.pack_id,
-        pack_name = EXCLUDED.pack_name,
-        matches_total = EXCLUDED.matches_total,
-        matches_remaining = EXCLUDED.matches_remaining,
-        requests_total = EXCLUDED.requests_total,
-        requests_remaining = EXCLUDED.requests_remaining,
-        amount_paid = EXCLUDED.amount_paid,
-        purchased_at = EXCLUDED.purchased_at,
-        expires_at = EXCLUDED.expires_at
-    `, [userId, packId, packDetails.name, packDetails.matches, packDetails.matches, packDetails.requests, packDetails.requests, amount || 100, new Date().toISOString(), new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()]);
+    const { error: packError } = await supabase
+      .from('user_packs')
+      .upsert({
+        user_id: userId,
+        pack_id: packId,
+        pack_name: packDetails.name,
+        matches_total: packDetails.matches,
+        matches_remaining: packDetails.matches,
+        requests_total: packDetails.requests,
+        requests_remaining: packDetails.requests,
+        amount_paid: amount || 100,
+        purchased_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days
+      });
 
-    if (packResult.rowCount === 0) {
-      throw new Error('Failed to activate pack');
+    if (packError) {
+      throw packError;
     }
     
     console.log(`Pack ${packId} activated manually for user ${userId} with ₹1 QR payment`);
@@ -795,13 +1002,17 @@ app.post("/api/payment/verify", async (req, res) => {
     console.log('Payment signature verified successfully');
     
     // Update payment order status
-    const orderResult = await pool.query(
-      'UPDATE payment_orders SET status = $1, razorpay_payment_id = $2, razorpay_signature = $3 WHERE razorpay_order_id = $4',
-      ['paid', paymentId, signature, orderId]
-    );
+    const { error: orderError } = await supabase
+      .from('payment_orders')
+      .update({
+        status: 'paid',
+        razorpay_payment_id: paymentId,
+        razorpay_signature: signature
+      })
+      .eq('razorpay_order_id', orderId);
 
-    if (orderResult.rowCount === 0) {
-      throw new Error('Order not found');
+    if (orderError) {
+      throw orderError;
     }
     
     // Get pack details
@@ -816,34 +1027,35 @@ app.post("/api/payment/verify", async (req, res) => {
     }
     
     // Get order details
-    const orderDataResult = await pool.query(
-      'SELECT amount FROM payment_orders WHERE razorpay_order_id = $1',
-      [orderId]
-    );
+    const { data: orderData, error: orderDataError } = await supabase
+      .from('payment_orders')
+      .select('amount')
+      .eq('razorpay_order_id', orderId)
+      .single();
 
-    if (orderDataResult.rowCount === 0) {
-      throw new Error('Order data not found');
+    if (orderDataError) {
+      throw orderDataError;
     }
     
-    const amountPaid = orderDataResult.rows[0].amount || 0;
+    const amountPaid = orderData.amount || 0;
     
     // Create or update user pack
-    const packResult = await pool.query(`
-      INSERT INTO user_packs (user_id, pack_id, pack_name, matches_total, matches_remaining, requests_total, requests_remaining, amount_paid, purchased_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-      ON CONFLICT (user_id) DO UPDATE SET
-        pack_id = EXCLUDED.pack_id,
-        pack_name = EXCLUDED.pack_name,
-        matches_total = EXCLUDED.matches_total,
-        matches_remaining = EXCLUDED.matches_remaining,
-        requests_total = EXCLUDED.requests_total,
-        requests_remaining = EXCLUDED.requests_remaining,
-        amount_paid = EXCLUDED.amount_paid,
-        purchased_at = EXCLUDED.purchased_at
-    `, [userId, packId, packDetails.name, packDetails.matches, packDetails.matches, packDetails.requests, packDetails.requests, amountPaid / 100, new Date().toISOString()]);
+    const { error: packError } = await supabase
+      .from('user_packs')
+      .upsert({
+        user_id: userId,
+        pack_id: packId,
+        pack_name: packDetails.name,
+        matches_total: packDetails.matches,
+        matches_remaining: packDetails.matches,
+        requests_total: packDetails.requests,
+        requests_remaining: packDetails.requests,
+        amount_paid: amountPaid / 100,
+        purchased_at: new Date().toISOString()
+      });
 
-    if (packResult.rowCount === 0) {
-      throw new Error('Failed to activate pack');
+    if (packError) {
+      throw packError;
     }
     
     console.log(`Pack activated: ${packId} for user ${userId}`);

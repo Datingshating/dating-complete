@@ -10,7 +10,7 @@
     "db:sql": "set PGPASSWORD=Rishi#1203 && psql -U postgres -d dating -f src/schema.sql"
   },
   "dependencies": {
-
+    "@supabase/supabase-js": "^2.56.0",
     "bcrypt": "^5.1.1",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
