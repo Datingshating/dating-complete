@@ -253,6 +253,7 @@ app.post("/api/register", async (req, res) => {
     const { data: userData, error: userError } = await supabase
       .from('users')
       .insert({
+        id: randomUUID(),
         name,
         gender,
         date_of_birth: dateOfBirth,
