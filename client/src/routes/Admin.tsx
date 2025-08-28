@@ -5,14 +5,26 @@ type Pending = { id:string; name:string; gender:string; date_of_birth:string; wh
 export function Admin(){
   const [items,setItems]=useState<Pending[]>([])
   const [cred,setCred]=useState<{loginId:string;password:string}|undefined>()
+  const token = localStorage.getItem('authToken') || ''
+  
   useEffect(()=>{ (async()=>{
-    const r = await fetch(import.meta.env.VITE_API_URL + '/api/admin/pending')
+    const r = await fetch(import.meta.env.VITE_API_URL + '/api/admin/pending', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    })
     setItems(await r.json())
-  })() },[])
+  })() },[token])
 
   async function approve(userId:string){
     const r = await fetch(import.meta.env.VITE_API_URL + '/api/admin/approve',{
-      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({userId})
+      method:'POST', 
+      headers:{
+        'Authorization': `Bearer ${token}`,
+        'Content-Type':'application/json'
+      }, 
+      body: JSON.stringify({userId})
     })
     const data = await r.json();
     if(r.ok){ setCred(data.credentials); setItems(items.filter(i=>i.id!==userId)) }

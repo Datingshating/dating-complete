@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 type Profile = { id:string; name:string; gender:string; location?:string; custom_location?:string; bio:string; relationship_status:string; interest_1:string; interest_1_desc:string; interest_2:string; interest_2_desc:string; interest_3:string; interest_3_desc:string }
 type MatchItem = { id:string; other_user_id:string; bio:string; relationship_status:string; interest_1:string; interest_1_desc:string; interest_2:string; interest_2_desc:string; interest_3:string; interest_3_desc:string; instagram_handle?: string; location?:string; custom_location?:string }
 
 export function Dashboard(){
+  const navigate = useNavigate()
   const [feed, setFeed] = useState<Profile[]>([])
   const [matches, setMatches] = useState<MatchItem[]>([])
   const [incoming, setIncoming] = useState<{
@@ -29,20 +30,41 @@ export function Dashboard(){
   const [sidebarExpanded, setSidebarExpanded] = useState(true)
   const [filtersVisible, setFiltersVisible] = useState(false)
   const [selectedChatUser, setSelectedChatUser] = useState<string | null>(null)
-  const userId = sessionStorage.getItem('userId') || ''
+  const userId = localStorage.getItem('userId') || ''
+  const token = localStorage.getItem('authToken') || ''
 
   // Function to fetch all data
   const fetchData = async () => {
-    if (!userId) return
+    if (!userId || !token) return
     
     try {
       const base = import.meta.env.VITE_API_URL
       
       const [feedRes, matchesRes, incomingRes, meRes] = await Promise.all([
-        fetch(`${base}/api/feed?userId=${userId}`),
-        fetch(`${base}/api/matches?userId=${userId}`),
-        fetch(`${base}/api/requests/incoming?userId=${userId}`),
-        fetch(`${base}/api/me?userId=${userId}`)
+        fetch(`${base}/api/feed?userId=${userId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }),
+        fetch(`${base}/api/matches?userId=${userId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }),
+        fetch(`${base}/api/requests/incoming?userId=${userId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }),
+        fetch(`${base}/api/me`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        })
       ])
 
       const feedData = await feedRes.json()
@@ -88,6 +110,29 @@ export function Dashboard(){
     const { url } = await r.json(); window.open(url,'_blank')
   }
 
+  async function handleLogout(){
+    try {
+      await fetch(import.meta.env.VITE_API_URL + '/api/logout', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+    } catch (error) {
+      console.error('Logout error:', error)
+    }
+    
+    // Clear all storage
+    localStorage.removeItem('authToken')
+    localStorage.removeItem('userId')
+    localStorage.removeItem('userName')
+    sessionStorage.removeItem('userId')
+    
+    // Redirect to login
+    navigate('/login')
+  }
+
   return (
     <div style={{
       display: 'flex', 
@@ -119,10 +164,7 @@ export function Dashboard(){
             <div style={{fontSize: '16px', fontWeight: 600}}>{me?.name || 'User'}</div>
           </div>
           <button 
-            onClick={() => {
-              sessionStorage.removeItem('userId')
-              window.location.href = '/'
-            }}
+            onClick={handleLogout}
             style={{
               background: 'rgba(255, 255, 255, 0.2)',
               border: '1px solid rgba(255, 255, 255, 0.3)',

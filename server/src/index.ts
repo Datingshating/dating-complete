@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import { createClient } from '@supabase/supabase-js';
 import { randomUUID } from "crypto";
 import Razorpay from 'razorpay';
+import jwt from 'jsonwebtoken'; // Add JWT import at the top
 dotenv.config();
 
 const app = express();
@@ -16,6 +17,7 @@ app.use(
     credentials: true,
   })
 );
+console.log("Hi  ",process.env.CORS_ORIGIN?.split(",") || ["http://localhost:5173"])
 
 // Initialize Supabase client
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
@@ -108,13 +110,8 @@ app.post("/api/register", async (req, res) => {
     } = req.body || {};
 
     // Validate required fields
-    if (!name || !gender || !dateOfBirth || !whatsappNumber || !instagramHandle || !bio || !relationshipStatus || !location) {
+    if (!name || !gender || !dateOfBirth || !whatsappNumber || !instagramHandle || !location || !bio || !relationshipStatus || !interest1 || !interest2 || !interest3) {
       return res.status(400).json({ error: "Missing required fields" });
-    }
-
-    // Validate location
-    if (location === 'Others' && !customLocation) {
-      return res.status(400).json({ error: "Please enter your city name when selecting 'Others'" });
     }
 
     // Validate bio minimum 25 words
@@ -127,27 +124,21 @@ app.post("/api/register", async (req, res) => {
     const desc1Words = interest1Desc?.trim().split(/\s+/).length || 0;
     const desc2Words = interest2Desc?.trim().split(/\s+/).length || 0;
     const desc3Words = interest3Desc?.trim().split(/\s+/).length || 0;
-    
+
     if (desc1Words < 10 || desc2Words < 10 || desc3Words < 10) {
       return res.status(400).json({ error: "Each interest description must contain at least 10 words" });
     }
 
-    // Determine the final location value
-    const finalLocation = location === 'Others' ? customLocation : location;
-    
-    const userId = randomUUID();
-
-    // Insert user into Supabase
+    // Create user record
     const { data: userData, error: userError } = await supabase
       .from('users')
       .insert({
-        id: userId,
         name,
         gender,
         date_of_birth: dateOfBirth,
         whatsapp_number: whatsappNumber,
         instagram_handle: instagramHandle,
-        location: finalLocation,
+        location,
         custom_location: customLocation,
         status: 'pending'
       })
@@ -155,15 +146,14 @@ app.post("/api/register", async (req, res) => {
       .single();
 
     if (userError) {
-      console.error('User insertion error:', userError);
-      return res.status(500).json({ error: "Failed to register user" });
+      throw userError;
     }
 
-    // Insert profile into Supabase
+    // Create profile record
     const { error: profileError } = await supabase
       .from('profiles')
       .insert({
-        user_id: userId,
+        user_id: userData.id,
         bio,
         relationship_status: relationshipStatus,
         interest_1: interest1,
@@ -175,75 +165,13 @@ app.post("/api/register", async (req, res) => {
       });
 
     if (profileError) {
-      console.error('Profile insertion error:', profileError);
-      return res.status(500).json({ error: "Failed to register profile" });
+      throw profileError;
     }
 
-    res.json({ status: "submitted", message: "Hold on! We'll review and verify your profile." });
+    res.json({ ok: true, message: "Registration submitted for review" });
   } catch (err) {
     console.error('Registration error:', err);
-    res.status(500).json({ error: "Failed to register" });
-  }
-});
-
-// Admin: list pending
-app.get("/api/admin/pending", async (_req, res) => {
-  try {
-    const { data, error } = await supabase
-      .from('users')
-      .select(`
-        id, name, gender, date_of_birth, whatsapp_number, instagram_handle, location, custom_location,
-        profiles!inner (
-          bio, relationship_status, interest_1, interest_1_desc, interest_2, interest_2_desc, interest_3, interest_3_desc
-        )
-      `)
-      .eq('status', 'pending')
-      .order('created_at', { ascending: true });
-
-    if (error) {
-      throw error;
-    }
-
-    res.json(data);
-  } catch (error) {
-    console.error('Error fetching pending users:', error);
-    res.status(500).json({ error: "Failed to fetch pending" });
-  }
-});
-
-// Admin: approve and generate credentials
-app.post("/api/admin/approve", async (req, res) => {
-  try {
-    const { userId } = req.body || {};
-    if (!userId) return res.status(400).json({ error: "userId required" });
-
-    const loginId = `D${Math.floor(100000 + Math.random() * 900000)}`; // e.g., D123456
-    const rawPassword = Math.random().toString(36).slice(-10);
-
-    // Hash password using bcrypt
-    const bcrypt = await import('bcrypt');
-    const passwordHash = await bcrypt.hash(rawPassword, 10);
-
-    const { data, error } = await supabase
-      .from('users')
-      .update({
-        status: 'approved',
-        login_id: loginId,
-        password_hash: passwordHash
-      })
-      .eq('id', userId)
-      .eq('status', 'pending')
-      .select('id, login_id')
-      .single();
-
-    if (error || !data) {
-      return res.status(404).json({ error: "User not found or not pending" });
-    }
-
-    res.json({ approved: true, credentials: { loginId, password: rawPassword } });
-  } catch (err) {
-    console.error('Error approving user:', err);
-    res.status(500).json({ error: "Failed to approve" });
+    res.status(500).json({ error: "Registration failed" });
   }
 });
 
@@ -255,7 +183,7 @@ app.post("/api/login", async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('users')
-      .select('id, password_hash')
+      .select('id, password_hash, name')
       .eq('login_id', loginId)
       .eq('status', 'approved')
       .single();
@@ -272,17 +200,64 @@ app.post("/api/login", async (req, res) => {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    res.json({ ok: true, userId: data.id });
+    // Generate JWT token - Fixed JWT usage
+    const token = jwt.sign(
+      { 
+        userId: data.id, 
+        loginId: loginId,
+        name: data.name 
+      },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '7d' }
+    );
+
+    // Set JWT token in HTTP-only cookie
+    res.cookie('authToken', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
+
+    res.json({ 
+      ok: true, 
+      userId: data.id,
+      name: data.name,
+      token: token // Also send token in response for client-side storage
+    });
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({ error: "Login failed" });
   }
 });
 
-// Current user: fetch profile
-app.get("/api/me", async (req, res) => {
-  const userId = String(req.query.userId || "");
-  if (!userId) return res.status(400).json({ error: "Missing userId" });
+// JWT Middleware for protected routes - Fixed JWT usage
+const authenticateToken = async (req: any, res: any, next: any) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+  
+  if (!token) {
+    return res.status(401).json({ error: "Access token required" });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as any;
+    (req as any).user = decoded;
+    next();
+  } catch (err) {
+    return res.status(403).json({ error: "Invalid token" });
+  }
+};
+
+// Logout endpoint
+app.post("/api/logout", (req, res) => {
+  res.clearCookie('authToken');
+  res.json({ ok: true, message: "Logged out successfully" });
+});
+
+// Current user: fetch profile (protected route)
+app.get("/api/me", authenticateToken, async (req, res) => {
+  const userId = (req as any).user.userId;
   
   try {
     const { data, error } = await supabase
@@ -301,11 +276,13 @@ app.get("/api/me", async (req, res) => {
     }
 
     // Flatten the data structure
-    const userData = {
+    const userData: any = {
       ...data,
-      ...data.profiles
+      ...(data.profiles || {})
     };
-    delete userData.profiles;
+    if (data.profiles) {
+      delete userData.profiles;
+    }
 
     res.json(userData);
   } catch (err) {
@@ -314,6 +291,7 @@ app.get("/api/me", async (req, res) => {
   }
 });
 
+// ... rest of your existing code ...
 // Current user: update profile (approved users)
 app.put("/api/me", async (req, res) => {
   const { userId, bio, relationshipStatus, interest1, interest1Desc, interest2, interest2Desc, interest3, interest3Desc } = req.body || {};

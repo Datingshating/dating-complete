@@ -6,13 +6,28 @@ import { Register } from './routes/Register'
 import { Login } from './routes/Login'
 import { Dashboard } from './routes/Dashboard'
 import { Admin } from './routes/Admin'
+import { ProtectedRoute } from './components/ProtectedRoute'
 
 const router = createBrowserRouter([
   { path: '/', element: <App /> },
   { path: '/register', element: <Register /> },
   { path: '/login', element: <Login /> },
-  { path: '/dashboard', element: <Dashboard /> },
-  { path: '/admin', element: <Admin /> },
+  { 
+    path: '/dashboard', 
+    element: (
+      <ProtectedRoute>
+        <Dashboard />
+      </ProtectedRoute>
+    ) 
+  },
+  { 
+    path: '/admin', 
+    element: (
+      <ProtectedRoute>
+        <Admin />
+      </ProtectedRoute>
+    ) 
+  },
 ])
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
