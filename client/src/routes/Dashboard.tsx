@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useLayoutEffect  } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { io, Socket } from 'socket.io-client'
 
 type Profile = { id:string; name:string; gender:string; location?:string; custom_location?:string; bio:string; relationship_status:string; interest_1:string; interest_1_desc:string; interest_2:string; interest_2_desc:string; interest_3:string; interest_3_desc:string }
 type MatchItem = { id:string; other_user_id:string; bio:string; relationship_status:string; interest_1:string; interest_1_desc:string; interest_2:string; interest_2_desc:string; interest_3:string; interest_3_desc:string; instagram_handle?: string; location?:string; custom_location?:string }
@@ -32,6 +33,7 @@ export function Dashboard(){
   const [selectedChatUser, setSelectedChatUser] = useState<string | null>(null)
   const userId = localStorage.getItem('userId') || ''
   const token = localStorage.getItem('authToken') || ''
+  const socketRef = useRef<Socket | null>(null)
 
   // Function to fetch all data
   const fetchData = async () => {
@@ -84,22 +86,84 @@ export function Dashboard(){
     }
   }
 
+  // Initialize WebSocket connection for real-time updates
+  useEffect(() => {
+    if (!userId) return
+    
+    const socket = io(import.meta.env.VITE_API_URL, {
+      transports: ['websocket', 'polling'],
+      upgrade: true,
+      rememberUpgrade: true,
+      timeout: 20000,
+      forceNew: true
+    })
+    socketRef.current = socket
+    
+    // Authenticate the socket connection
+    socket.emit('authenticate', { userId })
+    
+    // Listen for real-time updates
+    socket.on('request_received', () => {
+      console.log('New request received via WebSocket')
+      fetchData() // Refresh data immediately
+    })
+    
+    socket.on('match_updated', () => {
+      console.log('Match updated via WebSocket')
+      fetchData() // Refresh data immediately
+    })
+    
+    socket.on('connect', () => {
+      console.log('WebSocket connected for Dashboard')
+    })
+    
+    socket.on('disconnect', () => {
+      console.log('WebSocket disconnected from Dashboard')
+    })
+    
+    return () => {
+      socket.disconnect()
+    }
+  }, [userId])
+
   // Real-time updates for incoming requests
   useEffect(() => {
     fetchData()
     
-    // Set up polling for real-time updates every 10 seconds
-    const interval = setInterval(fetchData, 10000)
+    // Set up polling for real-time updates every 1 second for faster response
+    const interval = setInterval(fetchData, 1000)
     return () => clearInterval(interval)
   }, [userId])
 
   async function sendRequest(toUserId:string){
     const msg = prompt('Write a short message (max 200 chars)')||''
+    if (!msg.trim()) return
+    
     try {
-      await fetch(import.meta.env.VITE_API_URL + '/api/requests',{
-        method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({fromUserId:userId,toUserId,message:msg})
+      const response = await fetch(import.meta.env.VITE_API_URL + '/api/requests',{
+        method:'POST', 
+        headers:{
+          'Content-Type':'application/json',
+          'Authorization': `Bearer ${token}`
+        }, 
+        body: JSON.stringify({fromUserId:userId,toUserId,message:msg})
       })
+      
+      if (response.ok) {
       alert('Request sent successfully!')
+        // Immediately refresh data to show the sent request
+        fetchData()
+        
+        // Server will emit WebSocket event automatically
+        // No need to emit from client to prevent duplicates
+        
+        // Immediately refresh data to reduce latency
+        setTimeout(() => {
+          fetchData()
+        }, 100) // Refresh after 100ms
+      } else {
+        alert('Failed to send request. Please try again.')
+      }
     } catch (error) {
       alert('Failed to send request. Please try again.')
     }
@@ -159,16 +223,16 @@ export function Dashboard(){
           <h1 style={{margin: 0, fontSize: 28, fontWeight: 800}}>Whispyr</h1>
         </div>
         <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
-          <div style={{textAlign: 'right'}}>
-            <div style={{fontSize: '14px', opacity: 0.9}}>Welcome back</div>
-            <div style={{fontSize: '16px', fontWeight: 600}}>{me?.name || 'User'}</div>
-          </div>
+        <div style={{textAlign: 'right'}}>
+          <div style={{fontSize: '14px', opacity: 0.9}}>Welcome back</div>
+          <div style={{fontSize: '16px', fontWeight: 600}}>{me?.name || 'User'}</div>
+        </div>
           <button 
             onClick={handleLogout}
             style={{
               background: 'rgba(255, 255, 255, 0.2)',
               border: '1px solid rgba(255, 255, 255, 0.3)',
-              color: 'white',
+                    color: 'white',
               padding: '8px 16px',
               borderRadius: '8px',
               fontSize: '14px',
@@ -302,190 +366,192 @@ export function Dashboard(){
       )}
 
       {/* Bottom Navigation */}
-      <nav style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        background: 'white',
-        borderTop: '1px solid #e9ecef',
-        display: 'flex',
-        justifyContent: 'space-around',
-        alignItems: 'center',
-        padding: '12px 0',
-        zIndex: 1000,
-        boxShadow: '0 -2px 10px rgba(0,0,0,0.1)'
-      }}>
-        <button
-          style={{
-            background: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '4px',
-            padding: '8px 12px',
-            borderRadius: '12px',
-            color: activeTab === 'dating' ? '#ff6b6b' : '#6c757d',
-            fontSize: '12px',
-            fontWeight: 600,
-            transition: 'all 0.2s ease'
-          }}
-          onClick={() => setActiveTab('dating')}
-        >
-          <span style={{fontSize: '24px'}}>💖</span>
-          Discover
-        </button>
-
-        <button
-          style={{
-            background: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '4px',
-            padding: '8px 12px',
-            borderRadius: '12px',
-            color: activeTab === 'matches' ? '#ff6b6b' : '#6c757d',
-            fontSize: '12px',
-            fontWeight: 600,
-            transition: 'all 0.2s ease',
-            position: 'relative'
-          }}
-          onClick={() => setActiveTab('matches')}
-        >
-          <span style={{fontSize: '24px'}}>💕</span>
-          Matches
-          {matches.length > 0 && (
-            <div style={{
-              position: 'absolute',
-              top: '4px',
-              right: '8px',
-              background: '#ff6b6b',
-              color: 'white',
-              borderRadius: '50%',
-              width: '18px',
-              height: '18px',
-              fontSize: '10px',
+      {!selectedChatUser && (
+        <nav style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          background: 'white',
+          borderTop: '1px solid #e9ecef',
+          display: 'flex',
+          justifyContent: 'space-around',
+          alignItems: 'center',
+          padding: '12px 0',
+          zIndex: 1000,
+          boxShadow: '0 -2px 10px rgba(0,0,0,0.1)'
+        }}>
+          <button
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              {matches.length}
-            </div>
-          )}
-        </button>
+              gap: '4px',
+              padding: '8px 12px',
+              borderRadius: '12px',
+              color: activeTab === 'dating' ? '#ff6b6b' : '#6c757d',
+              fontSize: '12px',
+              fontWeight: 600,
+              transition: 'all 0.2s ease'
+            }}
+            onClick={() => setActiveTab('dating')}
+          >
+            <span style={{fontSize: '24px'}}>💖</span>
+            Discover
+          </button>
 
-        <button
-          style={{
-            background: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '4px',
-            padding: '8px 12px',
-            borderRadius: '12px',
-            color: activeTab === 'chat' ? '#ff6b6b' : '#6c757d',
-            fontSize: '12px',
-            fontWeight: 600,
-            transition: 'all 0.2s ease'
-          }}
-          onClick={() => setActiveTab('chat')}
-        >
-          <span style={{fontSize: '24px'}}>💬</span>
-          Chat
-        </button>
-
-        <button
-          style={{
-            background: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '4px',
-            padding: '8px 12px',
-            borderRadius: '12px',
-            color: activeTab === 'requests' ? '#ff6b6b' : '#6c757d',
-            fontSize: '12px',
-            fontWeight: 600,
-            transition: 'all 0.2s ease',
-            position: 'relative'
-          }}
-          onClick={() => setActiveTab('requests')}
-        >
-          <span style={{fontSize: '24px'}}>📩</span>
-          Requests
-          {incoming.length > 0 && (
-            <div style={{
-              position: 'absolute',
-              top: '4px',
-              right: '8px',
-              background: '#ff6b6b',
-              color: 'white',
-              borderRadius: '50%',
-              width: '18px',
-              height: '18px',
-              fontSize: '10px',
+          <button
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              {incoming.length}
-            </div>
-          )}
-        </button>
+              gap: '4px',
+              padding: '8px 12px',
+              borderRadius: '12px',
+              color: activeTab === 'matches' ? '#ff6b6b' : '#6c757d',
+              fontSize: '12px',
+              fontWeight: 600,
+              transition: 'all 0.2s ease',
+              position: 'relative'
+            }}
+            onClick={() => setActiveTab('matches')}
+          >
+            <span style={{fontSize: '24px'}}>💕</span>
+            Matches
+            {matches.length > 0 && (
+              <div style={{
+                position: 'absolute',
+                top: '4px',
+                right: '8px',
+                background: '#ff6b6b',
+                color: 'white',
+                borderRadius: '50%',
+                width: '18px',
+                height: '18px',
+                fontSize: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                {matches.length}
+              </div>
+            )}
+          </button>
 
-        <button
-          style={{
-            background: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '4px',
-            padding: '8px 12px',
-            borderRadius: '12px',
-            color: activeTab === 'packs' ? '#ff6b6b' : '#6c757d',
-            fontSize: '12px',
-            fontWeight: 600,
-            transition: 'all 0.2s ease'
-          }}
-          onClick={() => setActiveTab('packs')}
-        >
-          <span style={{fontSize: '24px'}}>💎</span>
-          Packs
-        </button>
+          <button
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '8px 12px',
+              borderRadius: '12px',
+              color: activeTab === 'chat' ? '#ff6b6b' : '#6c757d',
+              fontSize: '12px',
+              fontWeight: 600,
+              transition: 'all 0.2s ease'
+            }}
+            onClick={() => setActiveTab('chat')}
+          >
+            <span style={{fontSize: '24px'}}>💬</span>
+            Chat
+          </button>
 
-        <button
-          style={{
-            background: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '4px',
-            padding: '8px 12px',
-            borderRadius: '12px',
-            color: activeTab === 'profile' ? '#ff6b6b' : '#6c757d',
-            fontSize: '12px',
-            fontWeight: 600,
-            transition: 'all 0.2s ease'
-          }}
-          onClick={() => setActiveTab('profile')}
-        >
-          <span style={{fontSize: '24px'}}>👤</span>
-          Profile
-        </button>
-      </nav>
+          <button
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '8px 12px',
+              borderRadius: '12px',
+              color: activeTab === 'requests' ? '#ff6b6b' : '#6c757d',
+              fontSize: '12px',
+              fontWeight: 600,
+              transition: 'all 0.2s ease',
+              position: 'relative'
+            }}
+            onClick={() => setActiveTab('requests')}
+          >
+            <span style={{fontSize: '24px'}}>📩</span>
+            Requests
+            {incoming.length > 0 && (
+              <div style={{
+                position: 'absolute',
+                top: '4px',
+                right: '8px',
+                background: '#ff6b6b',
+                color: 'white',
+                borderRadius: '50%',
+                width: '18px',
+                height: '18px',
+                fontSize: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                {incoming.length}
+              </div>
+            )}
+          </button>
+
+          <button
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '8px 12px',
+              borderRadius: '12px',
+              color: activeTab === 'packs' ? '#ff6b6b' : '#6c757d',
+              fontSize: '12px',
+              fontWeight: 600,
+              transition: 'all 0.2s ease'
+            }}
+            onClick={() => setActiveTab('packs')}
+          >
+            <span style={{fontSize: '24px'}}>💎</span>
+            Packs
+          </button>
+
+          <button
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '8px 12px',
+              borderRadius: '12px',
+              color: activeTab === 'profile' ? '#ff6b6b' : '#6c757d',
+              fontSize: '12px',
+              fontWeight: 600,
+              transition: 'all 0.2s ease'
+            }}
+            onClick={() => setActiveTab('profile')}
+          >
+            <span style={{fontSize: '24px'}}>👤</span>
+            Profile
+          </button>
+        </nav>
+      )}
     </div>
   )
 }
@@ -690,7 +756,7 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
             }}>
               {currentProfile.name?.charAt(0).toUpperCase() || 'U'}
             </div>
-            <div>
+              <div>
               <h2 style={{margin: '0 0 4px 0', fontSize: '20px', fontWeight: 700, color: '#212529'}}>
                 {currentProfile.name}
               </h2>
@@ -707,8 +773,8 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
                   <span>📍 {currentProfile.location}</span>
                 )}
               </div>
+              </div>
             </div>
-          </div>
 
           {/* Bio Section */}
           <div style={{marginBottom: '16px'}}>
@@ -800,7 +866,7 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
                       fontWeight: 600
                     }}>
                       {currentProfile.interest_2}
-                    </span>
+              </span>
                   </div>
                   <p style={{
                     margin: 0,
@@ -833,8 +899,8 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
                       fontWeight: 600
                     }}>
                       {currentProfile.interest_3}
-                    </span>
-                  </div>
+              </span>
+            </div>
                   <p style={{
                     margin: 0,
                     color: '#212529',
@@ -843,9 +909,9 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
                   }}>
                     {currentProfile.interest_3_desc || 'No description available'}
                   </p>
-                </div>
+          </div>
               )}
-            </div>
+      </div>
           </div>
         </div>
 
@@ -993,13 +1059,13 @@ function MatchesSection({ matches, onRefresh, onChatClick }: {
 }) {
   return (
     <div>
-      {matches.length === 0 ? (
+          {matches.length === 0 ? (
         <div style={{textAlign: 'center', padding: 20}}>
           <div style={{fontSize: 32, marginBottom: 12}}>💔</div>
           <h3 style={{margin: '0 0 6px 0', color: '#212529', fontSize: '16px'}}>No matches yet</h3>
           <p style={{color: '#6c757d', margin: 0, fontSize: '12px'}}>Start sending requests to find your perfect match!</p>
-        </div>
-      ) : (
+            </div>
+          ) : (
         <div style={{display: 'grid', gap: 12}}>
           {matches.map(m => (
               <div key={m.id} style={{padding: '12px', borderBottom: '1px solid #f0f0f0'}}>
@@ -1011,7 +1077,7 @@ function MatchesSection({ matches, onRefresh, onChatClick }: {
                       {m.location && (
                         <span style={{color: '#212529', fontWeight: 500, fontSize: '11px'}}>📍 {m.location}</span>
                       )}
-                      {m.instagram_handle && (
+                    {m.instagram_handle && (
                         <>
                           <span style={{color: '#212529', fontWeight: 500, fontSize: '11px'}}>•</span>
                           <span style={{color: '#212529', fontWeight: 500, fontSize: '11px'}}>📸 Instagram:</span>
@@ -1051,13 +1117,13 @@ function RequestsSection({ incoming, onAccepted, userId }: {
 }) {
   return (
     <div>
-      {incoming.length === 0 ? (
+          {incoming.length === 0 ? (
         <div style={{textAlign: 'center', padding: 20}}>
           <div style={{fontSize: 32, marginBottom: 12}}>📭</div>
           <h3 style={{margin: '0 0 6px 0', color: '#212529', fontSize: '16px'}}>No pending requests</h3>
           <p style={{color: '#6c757d', margin: 0, fontSize: '12px'}}>When someone sends you a request, it will appear here.</p>
-        </div>
-      ) : (
+            </div>
+          ) : (
         <div style={{display: 'grid', gap: 12}}>
           {incoming.map(r => (
               <RequestRow key={r.id} item={r} me={userId} onAccepted={() => onAccepted(r.id)} />
@@ -1664,81 +1730,192 @@ function ChatSection({ matches, userId, selectedChatUser, setSelectedChatUser }:
   selectedChatUser: string | null;
   setSelectedChatUser: (id: string | null) => void;
 }) {
+  // Find the selected match at the top of the function
+  const selectedMatch = selectedChatUser ? matches.find(m => m.other_user_id === selectedChatUser) : null;
+  
   // If no chat user is selected, show the chat list (WhatsApp-like home page)
   if (!selectedChatUser) {
-  return (
-    <div>
-      {matches.length === 0 ? (
-        <div style={{textAlign: 'center', padding: 20}}>
-          <div style={{fontSize: 32, marginBottom: 12}}>💬</div>
-          <h3 style={{margin: '0 0 6px 0', color: '#212529', fontSize: '16px'}}>No conversations yet</h3>
-          <p style={{color: '#6c757d', margin: 0, fontSize: '12px'}}>Start matching with people to begin chatting!</p>
+    return (
+      <div style={{
+        display: 'flex', 
+        flexDirection: 'column',
+        height: 'calc(100vh - 80px)', // Full viewport height minus header
+        background: '#f0f2f5',
+        position: 'fixed',
+        top: '80px', // Start below the main header
+        left: '0',
+        right: '0',
+        bottom: '0', // Extend to very bottom
+        overflow: 'hidden'
+      }}>
+        {/* Chat Header */}
+        <div style={{
+          background: 'white',
+          padding: '12px 16px',
+          borderBottom: '1px solid #e9ecef',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          position: 'sticky',
+          top: 0,
+          zIndex: 10
+        }}>
+          <div style={{
+            width: 32,
+            height: 32,
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, #ff6b6b, #ee5a52)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'white',
+            fontSize: '14px',
+            fontWeight: 'bold'
+          }}>
+            💬
+          </div>
+          <div>
+            <h3 style={{margin: 0, fontSize: 16, fontWeight: 600, color: '#212529'}}>Chats</h3>
+            <p style={{margin: '2px 0 0 0', color: '#6c757d', fontSize: '12px'}}>
+              {matches.length} {matches.length === 1 ? 'match' : 'matches'}
+            </p>
+          </div>
         </div>
-      ) : (
-          <div style={{display: 'grid', gap: 8}}>
-          {matches.map(m => (
-              <div 
-                key={m.id} 
-                style={{
-                  padding: '12px',
-                  borderBottom: '1px solid #f0f0f0',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
-                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-                onClick={() => setSelectedChatUser(m.other_user_id)}
-              >
-                <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
+
+        {/* Chat List */}
+        <div style={{flex: 1, overflow: 'auto'}}>
+          {matches.length === 0 ? (
+            <div style={{
+              textAlign: 'center', 
+              color: '#6c757d', 
+              padding: '40px 20px',
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              flexDirection: 'column'
+            }}>
+              <div style={{fontSize: 48, marginBottom: 16, opacity: 0.6}}>💬</div>
+              <div style={{fontSize: '16px', fontWeight: 500}}>No matches yet</div>
+              <div style={{fontSize: '14px', marginTop: 4, opacity: 0.7}}>Start matching to begin chatting!</div>
+            </div>
+          ) : (
+            <div style={{padding: '8px'}}>
+              {matches.map(match => (
+                <div 
+                  key={match.id}
+                  onClick={() => setSelectedChatUser(match.other_user_id)}
+                  style={{
+                    background: 'white',
+                    padding: '12px 16px',
+                    marginBottom: '8px',
+                    borderRadius: '12px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    border: '1px solid #e9ecef',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-1px)'
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)'
+                    e.currentTarget.style.boxShadow = 'none'
+                  }}
+                >
                   <div style={{
-                    width: 40,
-                    height: 40,
+                    width: 48,
+                    height: 48,
                     borderRadius: '50%',
                     background: 'linear-gradient(135deg, #ff6b6b, #ee5a52)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: 'white',
-                    fontSize: '16px',
+                    fontSize: '18px',
                     fontWeight: 'bold'
                   }}>
-                    {m.bio.charAt(0).toUpperCase()}
+                    {match.bio.charAt(0).toUpperCase() || '?'}
                   </div>
-                <div style={{flex: 1}}>
-                    <h4 style={{margin: '0 0 3px 0', fontSize: 14, fontWeight: 600, color: '#212529'}}>
-                      Chat with your match
-                    </h4>
-                    <p style={{margin: 0, color: '#6c757d', fontSize: '12px', lineHeight: 1.3}}>
-                      {m.bio.length > 50 ? m.bio.substring(0, 50) + '...' : m.bio}
-                    </p>
-                    <div style={{display: 'flex', alignItems: 'center', gap: '3px', marginTop: '3px'}}>
-                      {m.location && (
-                        <span style={{color: '#6c757d', fontSize: '10px'}}>📍 {m.location}</span>
-                      )}
-                      {m.instagram_handle && (
-                        <>
-                          {m.location && <span style={{color: '#6c757d', fontSize: '10px'}}>•</span>}
-                          <span style={{color: '#ff6b6b', fontSize: '10px'}}>📸 @{m.instagram_handle}</span>
-                        </>
+                  <div style={{flex: 1}}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      marginBottom: 4
+                    }}>
+                      <h4 style={{
+                        margin: 0,
+                        fontSize: 16,
+                        fontWeight: 600,
+                        color: '#212529'
+                      }}>
+                        Your Match
+                      </h4>
+                      {match.location && (
+                        <span style={{
+                          color: '#6c757d',
+                          fontSize: '12px'
+                        }}>
+                          📍 {match.location}
+                        </span>
                       )}
                     </div>
+                    <p style={{
+                      margin: 0,
+                      color: '#6c757d',
+                      fontSize: '14px',
+                      lineHeight: 1.4,
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden'
+                    }}>
+                      {match.bio}
+                    </p>
+                    {match.instagram_handle && (
+                      <div style={{
+                        marginTop: 4,
+                        color: '#ff6b6b',
+                        fontSize: '12px',
+                        fontWeight: 500
+                      }}>
+                        📸 @{match.instagram_handle}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{
+                    color: '#6c757d',
+                    fontSize: '20px'
+                  }}>
+                    →
+                  </div>
                 </div>
-                  <div style={{color: '#6c757d', fontSize: '10px'}}>▶</div>
-              </div>
+              ))}
             </div>
-          ))}
+          )}
         </div>
-      )}
-    </div>
-  )
-}
+      </div>
+    )
+  }
 
   // If a chat user is selected, show the individual chat interface
-  const selectedMatch = matches.find(m => m.other_user_id === selectedChatUser)
-  
   return (
-    <div style={{height: 'calc(100vh - 200px)', display: 'flex', flexDirection: 'column'}}>
-            {/* Chat Header */}
+      <div style={{
+        display: 'flex', 
+        flexDirection: 'column',
+        height: 'calc(100vh - 80px)', // Full viewport height minus header
+        background: '#f0f2f5',
+        position: 'fixed',
+        top: '80px', // Start below the main header
+        left: '0',
+        right: '0',
+        bottom: '0', // Extend to very bottom
+        overflow: 'hidden'
+      }}>
+      {/* Chat Header */}
       <div style={{
         background: 'white',
         padding: '12px 16px',
@@ -1746,7 +1923,9 @@ function ChatSection({ matches, userId, selectedChatUser, setSelectedChatUser }:
         display: 'flex',
         alignItems: 'center',
         gap: 12,
-        margin: '-16px -16px 16px -16px'
+        position: 'sticky',
+        top: 0,
+        zIndex: 10
       }}>
         <button 
           onClick={() => setSelectedChatUser(null)}
@@ -1777,16 +1956,16 @@ function ChatSection({ matches, userId, selectedChatUser, setSelectedChatUser }:
         </div>
         <div>
           <h3 style={{margin: 0, fontSize: 16, fontWeight: 600, color: '#212529'}}>Chat with your match</h3>
-        {selectedMatch?.instagram_handle && (
-          <p style={{margin: '2px 0 0 0', color: '#6c757d', fontSize: '12px'}}>
-            📸 @{selectedMatch.instagram_handle}
-          </p>
-        )}
+          {selectedMatch?.instagram_handle && (
+            <p style={{margin: '2px 0 0 0', color: '#6c757d', fontSize: '12px'}}>
+              📸 @{selectedMatch.instagram_handle}
+            </p>
+          )}
         </div>
       </div>
 
-      {/* Chat Messages */}
-      <div style={{flex: 1, display: 'flex', flexDirection: 'column'}}>
+      {/* Chat Messages and Input Container */}
+      <div style={{flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden'}}>
         <ChatPanel me={userId} other={selectedChatUser} />
       </div>
     </div>
@@ -1877,8 +2056,8 @@ function ProfileDisplay({ me }: { me: any }) {
       </div>
     )
   }
-
-    return (
+  
+  return (
     <div style={{
       padding: '16px'
     }}>
@@ -2080,149 +2259,332 @@ function ProfileDisplay({ me }: { me: any }) {
     </div>
   )
 }
-function ChatPanel({me, other}: {me: string; other: string}) {
-  const [messages, setMessages] = useState<{
-    id: string;
-    sender_id: string;
-    content: string;
-    created_at: string;
-  }[]>([])
+
+
+
+type Msg = {
+  id: string
+  sender_id: string
+  content: string
+  created_at: string
+  isOptimistic?: boolean
+}
+
+function ChatPanel({ me, other }: { me: string; other: string }) {
+  const [messages, setMessages] = useState<Msg[]>([])
   const [text, setText] = useState('')
   const [isSending, setIsSending] = useState(false)
+  const socketRef = useRef<Socket | null>(null)
 
+  // Scroll refs
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
+
+  // Stickiness (auto-scroll only when user is at bottom)
+  const [autoStick, setAutoStick] = useState(true)
+
+  // Guard to avoid reacting to our own programmatic scrolls
+  const programmaticScrollRef = useRef(false)
+
+  // Touch start position (for swipe-down = scroll up)
+  const touchStartYRef = useRef<number | null>(null)
+
+  // Bottom detection — make it *tight* so tiny moves break stickiness
+  const BOTTOM_EPS = 1
+
+  const bottomDelta = () => {
+    const el = messagesContainerRef.current
+    if (!el) return 0
+    return el.scrollHeight - el.clientHeight - el.scrollTop
+  }
+
+  const isAtBottomTight = () => bottomDelta() <= BOTTOM_EPS
+
+  // Two flavors of scroll
+  const scrollToBottom = (smooth = false) => {
+    const el = messagesContainerRef.current
+    if (!el) return
+    programmaticScrollRef.current = true
+    el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'auto' })
+    requestAnimationFrame(() => {
+      programmaticScrollRef.current = false
+    })
+  }
+
+  // ===== Scroll event handlers =====
+  const handleScroll: React.UIEventHandler<HTMLDivElement> = () => {
+    if (programmaticScrollRef.current) return
+    // Immediate update: at bottom => stick, else => unstick
+    setAutoStick(isAtBottomTight())
+  }
+
+  const handleWheel: React.WheelEventHandler<HTMLDivElement> = (e) => {
+    if (programmaticScrollRef.current) return
+    // Any upward wheel breaks stickiness instantly
+    if (e.deltaY < 0 && autoStick) setAutoStick(false)
+  }
+
+  const handlePointerDown: React.PointerEventHandler<HTMLDivElement> = () => {
+    // As soon as the user grabs the list, stop sticking
+    if (autoStick && !isAtBottomTight()) setAutoStick(false)
+  }
+
+  const handleTouchStart: React.TouchEventHandler<HTMLDivElement> = (e) => {
+    touchStartYRef.current = e.touches[0].clientY
+    // Break right away if not exactly at bottom
+    if (autoStick && !isAtBottomTight()) setAutoStick(false)
+  }
+
+  const handleTouchMove: React.TouchEventHandler<HTMLDivElement> = (e) => {
+    if (programmaticScrollRef.current) return
+    const start = touchStartYRef.current
+    if (start == null) return
+    const current = e.touches[0].clientY
+    // Finger moves down => content scrolls up => viewing older messages
+    if (current - start > 2 && autoStick) setAutoStick(false)
+  }
+
+  // ===== Effects =====
+
+  // Auto-scroll on new messages:
+  // - Always for my own outgoing messages (smooth)
+  // - For received messages only if user was already at bottom (jump, no smooth)
+  useLayoutEffect(() => {
+    if (messages.length === 0) return
+    if (autoStick) {
+      // smooth is fine here; change to false if you prefer instant
+      requestAnimationFrame(() => scrollToBottom(true))
+    }
+  }, [messages, autoStick])
+
+  // Initial stick and scroll on mount
   useEffect(() => {
-    const fetchMessages = async () => {
+    requestAnimationFrame(() => {
+      setAutoStick(true)
+      scrollToBottom(false)
+    })
+  }, [])
+
+  // WebSocket setup + history
+  useEffect(() => {
+    const loadChatHistory = async () => {
       try {
-        const r = await fetch(`${import.meta.env.VITE_API_URL}/api/chat/history?userA=${me}&userB=${other}`)
-        if (!r.ok) {
-          console.error('Failed to fetch messages:', r.status, r.statusText)
-          return
+        const convResponse = await fetch(
+          `${import.meta.env.VITE_API_URL}/api/chat/history?userA=${me}&userB=${other}`
+        )
+        if (convResponse.ok) {
+          const convData: Msg[] = await convResponse.json()
+          setMessages(convData || [])
+          requestAnimationFrame(() => {
+            setAutoStick(isAtBottomTight())
+            scrollToBottom(false)
+          })
+        } else {
+          setMessages([])
         }
-        const data = await r.json()
-        console.log('Fetched messages:', data)
-        setMessages(Array.isArray(data) ? data : [])
       } catch (error) {
-        console.error('Error fetching messages:', error)
+        console.error('Error loading chat history:', error)
         setMessages([])
       }
     }
-    
-    fetchMessages()
-    // Set up polling to fetch new messages every 3 seconds for real-time updates
-    const interval = setInterval(fetchMessages, 3000)
-    return () => clearInterval(interval)
+
+    const socket = io(import.meta.env.VITE_API_URL, {
+      transports: ['websocket', 'polling'],
+      upgrade: true,
+      rememberUpgrade: true,
+      timeout: 20000,
+      forceNew: true
+    })
+    socketRef.current = socket
+
+    socket.emit('authenticate', { userId: me })
+
+    socket.on('new_message', (message: Msg) => {
+      // Were we at bottom before appending?
+      const wasAtBottom = isAtBottomTight()
+
+      setMessages(prev => {
+        const exists = prev.some(m =>
+          m.id === message.id ||
+          (m.content === message.content && m.sender_id === message.sender_id)
+        )
+        if (exists) {
+          return prev.map(m =>
+            m.isOptimistic &&
+            m.content === message.content &&
+            m.sender_id === message.sender_id
+              ? message
+              : m
+          )
+        }
+        return [...prev, message]
+      })
+
+      // Ensure receiver sees the newest message if they were at bottom
+      if (wasAtBottom) requestAnimationFrame(() => scrollToBottom(false))
+    })
+
+    socket.on('connect', () => console.log('✅ WebSocket connected for ChatPanel'))
+    socket.on('disconnect', () => console.log('❌ WebSocket disconnected from ChatPanel'))
+    socket.on('connect_error', (err) => console.log('❌ WebSocket connection failed:', err))
+
+    loadChatHistory()
+
+    return () => socketRef.current?.disconnect()
   }, [me, other])
 
+  // ===== Send message =====
   async function send() {
     if (!text.trim() || isSending) return
-    
+    const messageContent = text.trim()
+    setText('')
     setIsSending(true)
-    console.log('Sending message:', { fromUserId: me, toUserId: other, content: text })
-    
+
+    const optimisticMessage: Msg = {
+      id: `temp-${Date.now()}-${Math.random()}`,
+      sender_id: me,
+      content: messageContent,
+      created_at: new Date().toISOString(),
+      isOptimistic: true
+    }
+    setMessages(prev => [...prev, optimisticMessage])
+
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/chat/send`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({fromUserId: me, toUserId: other, content: text})
+        body: JSON.stringify({ fromUserId: me, toUserId: other, content: messageContent })
       })
-      
       if (!response.ok) {
         const errorData = await response.json()
-        console.error('Send message failed:', errorData)
         throw new Error(errorData.error || 'Failed to send message')
       }
-      
-      const result = await response.json()
-      console.log('Message sent successfully:', result)
-      setText('')
-      
-      // Fetch updated messages immediately
-      const r = await fetch(`${import.meta.env.VITE_API_URL}/api/chat/history?userA=${me}&userB=${other}`)
-      if (r.ok) {
-      const data = await r.json()
-        console.log('Updated messages after send:', data)
-      setMessages(Array.isArray(data) ? data : [])
-      }
+      await response.json()
+      // Server emits real message over WS; no client emit to avoid dupes
     } catch (error) {
       console.error('Error sending message:', error)
       alert('Failed to send message. Please try again.')
+      setMessages(prev => prev.filter(m => !m.isOptimistic))
+      setText(messageContent)
     } finally {
       setIsSending(false)
     }
   }
 
+  // ===== UI =====
   return (
-    <div style={{display: 'flex', flexDirection: 'column', height: '100%', gap: 12}}>
-      {/* Messages Area */}
-      <div style={{
-        flex: 1,
-        overflow: 'auto',
-        background: 'var(--bg)',
-        padding: 16,
-        borderRadius: 12,
-        border: '1px solid var(--border)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 8,
-        minHeight: '300px'
-      }}>
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100%',
+      background: '#f0f2f5'
+    }}>
+      {/* Messages Area - Scrollable */}
+      <div
+        ref={messagesContainerRef}
+        onScroll={handleScroll}
+        onWheel={handleWheel}
+        onPointerDown={handlePointerDown}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        style={{
+          flex: 1,
+          overflow: 'auto',
+          padding: '16px',
+          scrollbarWidth: 'none', /* Firefox */
+          msOverflowStyle: 'none'  /* IE and Edge */
+          // WebKit scrollbar hiding requires CSS ::-webkit-scrollbar rules
+        }}
+      >
         {messages.length === 0 ? (
-                  <div style={{textAlign: 'center', color: '#6c757d', padding: 20, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-          <div>
-            <div style={{fontSize: 32, marginBottom: 12}}>💬</div>
-            <div style={{fontSize: '14px'}}>No messages yet. Start the conversation!</div>
-          </div>
-        </div>
-        ) : (
-          messages.map(m => (
-            <div key={m.id} style={{textAlign: m.sender_id === me ? 'right' : 'left'}}>
-              <span style={{
-                display: 'inline-block',
-                background: m.sender_id === me ? 'linear-gradient(135deg, #ff6b6b, #ee5a52)' : '#ffffff',
-                color: m.sender_id === me ? 'white' : '#212529',
-                padding: '8px 12px',
-                borderRadius: 12,
-                maxWidth: '75%',
-                wordBreak: 'break-word',
-                boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
-                fontSize: '12px',
-                lineHeight: 1.3
-              }}>
-                {m.content}
-              </span>
-            </div>
-          ))
-        )}
-      </div>
-      
-      {/* Input Area */}
-      <div style={{display: 'flex', gap: 8, alignItems: 'flex-end'}}>
-        <input 
-          value={text} 
-          onChange={e => setText(e.target.value)} 
-          placeholder="Type a message..." 
-          style={{
-            ...input,
-            flex: 1,
-            resize: 'none',
-            minHeight: '36px',
-            maxHeight: '100px',
-            fontSize: '12px'
-          }}
-          onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && send()}
-          disabled={isSending}
-        />
-        <button 
-          onClick={send} 
-          style={{
-            ...btnPrimary,
-            minHeight: '36px',
-            minWidth: '36px',
+          <div style={{
+            textAlign: 'center',
+            color: '#6c757d',
+            padding: '40px 20px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            opacity: isSending ? 0.7 : 1,
-            fontSize: '14px'
+            flexDirection: 'column'
+          }}>
+            <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.6 }}>💬</div>
+            <div style={{ fontSize: '16px', fontWeight: 500 }}>No messages yet</div>
+            <div style={{ fontSize: '14px', marginTop: 4, opacity: 0.7 }}>Start the conversation!</div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {messages.map(m => (
+              <div key={m.id} style={{
+                display: 'flex',
+                justifyContent: m.sender_id === me ? 'flex-end' : 'flex-start',
+                marginBottom: '8px'
+              }}>
+                <div style={{
+                  maxWidth: '70%',
+                  background: m.sender_id === me ? 'linear-gradient(135deg, #ff6b6b, #ee5a52)' : '#ffffff',
+                  color: m.sender_id === me ? 'white' : '#212529',
+                  padding: '12px 16px',
+                  borderRadius: m.sender_id === me ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                  fontSize: '14px',
+                  lineHeight: 1.4,
+                  wordBreak: 'break-word'
+                }}>
+                  {m.content}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {/* Anchor kept for layout parity */}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input Area */}
+      <div style={{
+        background: '#ffffff',
+        borderTop: '1px solid #e9ecef',
+        padding: '12px 16px',
+        display: 'flex',
+        gap: 8,
+        alignItems: 'flex-end'
+      }}>
+        <input
+          value={text}
+          onChange={e => setText(e.target.value)}
+          placeholder="Type a message..."
+          style={{
+            flex: 1,
+            border: '1px solid #e9ecef',
+            borderRadius: '20px',
+            padding: '10px 16px',
+            fontSize: '14px',
+            outline: 'none',
+            resize: 'none',
+            minHeight: '40px',
+            maxHeight: '120px',
+            background: '#f8f9fa'
+          }}
+          onKeyDown={(e) =>
+            e.key === 'Enter' && !e.shiftKey ? (e.preventDefault(), send()) : undefined
+          }
+          disabled={isSending}
+        />
+        <button
+          onClick={send}
+          style={{
+            background: 'linear-gradient(135deg, #ff6b6b, #ee5a52)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '50%',
+            width: '40px',
+            height: '40px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            fontSize: '16px',
+            opacity: isSending || !text.trim() ? 0.6 : 1,
+            transition: 'all 0.2s ease'
           }}
           disabled={!text.trim() || isSending}
         >
@@ -2232,6 +2594,10 @@ function ChatPanel({me, other}: {me: string; other: string}) {
     </div>
   )
 }
+
+export default ChatPanel
+
+
 
 function Modal({children,onClose}:{children:React.ReactNode;onClose:()=>void}){
   return (
@@ -2335,5 +2701,6 @@ const input: React.CSSProperties = {
   fontSize: '14px',
   width: '100%'
 }
+
 
 

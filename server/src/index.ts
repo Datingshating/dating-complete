@@ -6,9 +6,123 @@ import { createClient } from '@supabase/supabase-js';
 import { randomUUID } from "crypto";
 import Razorpay from 'razorpay';
 import jwt from 'jsonwebtoken'; // Add JWT import at the top
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+
+// Load environment variables
 dotenv.config();
 
 const app = express();
+const server = createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: process.env.CORS_ORIGIN?.split(",") || ["http://localhost:5173"],
+    credentials: true,
+  },
+  transports: ['websocket', 'polling'],
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  upgradeTimeout: 10000,
+  allowEIO3: true
+});
+
+// Cache for match status and conversation IDs to avoid repeated DB queries
+const matchCache = new Map<string, boolean>(); // key: "userId1:userId2", value: isMatched
+const conversationCache = new Map<string, string>(); // key: "userId1:userId2", value: conversationId
+
+// Helper function to create consistent cache keys
+const getCacheKey = (userId1: string, userId2: string): string => {
+  return [userId1, userId2].sort().join(':');
+};
+
+// Helper function to check if users are matched (with caching)
+const areUsersMatched = async (userId1: string, userId2: string): Promise<boolean> => {
+  const cacheKey = getCacheKey(userId1, userId2);
+  
+  // Check cache first
+  if (matchCache.has(cacheKey)) {
+    return matchCache.get(cacheKey)!;
+  }
+  
+  // Query database if not in cache
+  const { data: matchData, error: matchError } = await supabase
+    .from('matches')
+    .select('id')
+    .or(`and(user_a_id.eq.${userId1},user_b_id.eq.${userId2}),and(user_a_id.eq.${userId2},user_b_id.eq.${userId1})`)
+    .single();
+
+  const isMatched = !matchError && !!matchData;
+  
+  // Cache the result
+  matchCache.set(cacheKey, isMatched);
+  
+  return isMatched;
+};
+
+// Helper function to get conversation ID (with caching)
+const getConversationId = async (userId1: string, userId2: string): Promise<string> => {
+  const cacheKey = getCacheKey(userId1, userId2);
+  
+  // Check cache first
+  if (conversationCache.has(cacheKey)) {
+    return conversationCache.get(cacheKey)!;
+  }
+  
+  // Query database if not in cache
+  const { data: existingConv, error: checkError } = await supabase
+    .from('conversations')
+    .select('id')
+    .or(`and(user_a_id.eq.${userId1 < userId2 ? userId1 : userId2},user_b_id.eq.${userId1 < userId2 ? userId2 : userId1})`)
+    .single();
+
+  let convId: string;
+  
+  if (existingConv) {
+    convId = existingConv.id;
+  } else {
+    // Create new conversation
+    const { data: newConv, error: createError } = await supabase
+      .from('conversations')
+      .insert({
+        id: randomUUID(),
+        user_a_id: userId1 < userId2 ? userId1 : userId2,
+        user_b_id: userId1 < userId2 ? userId2 : userId1
+      })
+      .select('id')
+      .single();
+
+    if (createError) {
+      throw createError;
+    }
+    
+    convId = newConv.id;
+  }
+  
+  // Cache the result
+  conversationCache.set(cacheKey, convId);
+  
+  return convId;
+};
+
+// Cache invalidation functions
+const invalidateMatchCache = (userId1: string, userId2: string) => {
+  const cacheKey = getCacheKey(userId1, userId2);
+  matchCache.delete(cacheKey);
+};
+
+const invalidateConversationCache = (userId1: string, userId2: string) => {
+  const cacheKey = getCacheKey(userId1, userId2);
+  conversationCache.delete(cacheKey);
+};
+
+// Clear all caches (useful for debugging or when data changes significantly)
+const clearAllCaches = () => {
+  matchCache.clear();
+  conversationCache.clear();
+  console.log('All caches cleared');
+};
+
+
 app.use(express.json());
 app.use(cookieParser());
 app.use(
@@ -20,8 +134,8 @@ app.use(
 console.log("Hi  ",process.env.CORS_ORIGIN?.split(",") || ["http://localhost:5173"])
 
 // Initialize Supabase client
-const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
@@ -34,6 +148,12 @@ console.log('Supabase connection initialized');
 // Health
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, uptime: process.uptime() });
+});
+
+// Debug: Clear all caches
+app.post("/api/debug/clear-caches", (_req, res) => {
+  clearAllCaches();
+  res.json({ message: "All caches cleared" });
 });
 
 // Database test endpoint
@@ -413,6 +533,10 @@ app.post("/api/requests", async (req, res) => {
       throw error;
     }
 
+    // Emit WebSocket event for real-time notification
+    io.to(`user_${toUserId}`).emit('request_received');
+    io.to(`user_${fromUserId}`).emit('request_sent_success');
+
     res.json({ sent: true, id });
   } catch (err) {
     console.error('Error sending request:', err);
@@ -451,6 +575,10 @@ app.post("/api/requests/:id/accept", async (req, res) => {
 
     if (matchError) {
       console.error('Error creating match:', matchError);
+    } else {
+      // Invalidate match cache for these users
+      invalidateMatchCache(a, b);
+      console.log(`Match cache invalidated for users ${a} and ${b}`);
     }
 
     // Delete the request
@@ -532,7 +660,7 @@ app.get("/api/matches", async (req, res) => {
   }
 });
 
-// Minimal chat model: create conversation on demand and send messages
+// Optimized chat model: uses caching to avoid repeated DB queries
 app.post("/api/chat/send", async (req, res) => {
   const { fromUserId, toUserId, content } = req.body || {};
   if (!fromUserId || !toUserId || !content) return res.status(400).json({ error: "Missing fromUserId, toUserId, or content" });
@@ -540,75 +668,129 @@ app.post("/api/chat/send", async (req, res) => {
   console.log(`Chat send request: from ${fromUserId} to ${toUserId}, content: "${content}"`);
   
   try {
-    // Ensure users are matched before allowing chat
-    const { data: matchData, error: matchError } = await supabase
-      .from('matches')
-      .select('id')
-      .or(`and(user_a_id.eq.${fromUserId},user_b_id.eq.${toUserId}),and(user_a_id.eq.${toUserId},user_b_id.eq.${fromUserId})`)
-      .single();
-
-    if (matchError || !matchData) {
+    const startTime = Date.now();
+    
+    // Ensure users are matched before allowing chat (cached)
+    const isMatched = await areUsersMatched(fromUserId, toUserId);
+    if (!isMatched) {
       console.log(`Chat blocked: Users ${fromUserId} and ${toUserId} are not matched`);
       return res.status(403).json({ error: "Chat allowed only between matched users" });
     }
 
-    // First check if conversation exists
-    const { data: existingConv, error: checkError } = await supabase
-      .from('conversations')
-      .select('id')
-      .or(`and(user_a_id.eq.${fromUserId < toUserId ? fromUserId : toUserId},user_b_id.eq.${fromUserId < toUserId ? toUserId : fromUserId})`)
-      .single();
-
-    let convId;
+    // Get conversation ID (cached, creates if doesn't exist)
+    const convId = await getConversationId(fromUserId, toUserId);
     
-    if (existingConv) {
-      // Conversation exists, use its ID
-      convId = existingConv.id;
-      console.log(`Using existing conversation ID: ${convId}`);
-    } else {
-      // Create new conversation
-      const { data: newConv, error: createError } = await supabase
-        .from('conversations')
-        .insert({
-          id: randomUUID(),
-          user_a_id: fromUserId < toUserId ? fromUserId : toUserId,
-          user_b_id: fromUserId < toUserId ? toUserId : fromUserId
-        })
-        .select('id')
-        .single();
+    const checkTime = Date.now() - startTime;
+    console.log(`Match and conversation checks completed in ${checkTime}ms (cached)`);
 
-      if (createError) {
-        throw createError;
-      }
-      
-      convId = newConv.id;
-      console.log(`Created new conversation ID: ${convId}`);
-    }
+    // Create message data first
+    const messageId = randomUUID();
+    const messageData = {
+      id: messageId,
+      sender_id: fromUserId,
+      content: String(content).slice(0, 1000),
+      created_at: new Date().toISOString()
+    };
+    
+    // Save to database FIRST to ensure persistence
+const { error: messageError } = await supabase
+.from('messages')
+.insert({
+  id: messageId,
+  conversation_id: convId,
+  sender_id: fromUserId,
+  content: String(content).slice(0, 1000)
+});
 
+if (messageError) {
+console.error('Database save failed:', messageError);
+return res.status(500).json({ error: "Failed to save message to database" });
+}
 
+console.log(`Message saved to database successfully`);
 
-    // Send message
-    const { error: messageError } = await supabase
-      .from('messages')
-      .insert({
-        id: randomUUID(),
-        conversation_id: convId,
-        sender_id: fromUserId,
-        content: String(content).slice(0, 1000)
-      });
+// Now emit WebSocket events AFTER successful database save
+try {
+// Check if users are connected before emitting
+const toUserRoom = io.sockets.adapter.rooms.get(`user_${toUserId}`);
+const fromUserRoom = io.sockets.adapter.rooms.get(`user_${fromUserId}`);
 
-    if (messageError) {
-      throw messageError;
-    }
+// Emit to recipient if they're connected
+if (toUserRoom && toUserRoom.size > 0) {
+  io.to(`user_${toUserId}`).emit('new_message', messageData);
+  console.log(`Message sent via WebSocket to recipient ${toUserId}`);
+} else {
+  console.log(`Recipient ${toUserId} not connected, message saved to database`);
+}
 
-    console.log(`Message sent successfully`);
-    res.json({ sent: true, conversationId: convId });
+// Emit to sender for confirmation
+if (fromUserRoom && fromUserRoom.size > 0) {
+  io.to(`user_${fromUserId}`).emit('new_message', messageData);
+  console.log(`Message confirmation sent via WebSocket to sender ${fromUserId}`);
+}
+
+} catch (wsError) {
+console.error('WebSocket emission failed:', wsError);
+// Don't fail the request since message is already saved to database
+// Client can fetch messages from database if WebSocket fails
+}
+
+const totalTime = Date.now() - startTime;
+console.log(`Message processed in ${totalTime}ms (DB: ${checkTime}ms, WS: ${totalTime - checkTime}ms)`);
+    
+    res.json({ sent: true, conversationId: convId, id: messageId });
   } catch (err) {
     console.error('Failed to send message:', err);
     res.status(500).json({ error: "Failed to send message", details: err instanceof Error ? err.message : 'Unknown error' });
   }
 });
 
+// Separate route for loading chat history (load once when chat opens)
+app.get("/api/chat/history/:conversationId", async (req, res) => {
+  const conversationId = req.params.conversationId;
+  const userId = String(req.query.userId || "");
+  
+  if (!conversationId || !userId) return res.status(400).json({ error: "Missing conversationId or userId" });
+  
+  console.log(`Chat history request: conversationId=${conversationId}, userId=${userId}`);
+  
+  try {
+    // Verify user has access to this conversation
+    const { data: convData, error: convError } = await supabase
+      .from('conversations')
+      .select('user_a_id, user_b_id')
+      .eq('id', conversationId)
+      .single();
+
+    if (convError || !convData) {
+      return res.status(404).json({ error: "Conversation not found" });
+    }
+
+    // Check if user is part of this conversation
+    if (convData.user_a_id !== userId && convData.user_b_id !== userId) {
+      return res.status(403).json({ error: "Access denied" });
+    }
+
+    // Get all messages for this conversation
+    const { data: historyData, error: historyError } = await supabase
+      .from('messages')
+      .select('id, sender_id, content, created_at')
+      .eq('conversation_id', conversationId)
+      .order('created_at', { ascending: true });
+
+    if (historyError) {
+      throw historyError;
+    }
+
+    console.log(`Chat history loaded: ${historyData?.length || 0} messages`);
+    res.json(historyData || []);
+  } catch (err) {
+    console.error('Failed to load chat history:', err);
+    res.status(500).json({ error: "Failed to load chat history", details: err instanceof Error ? err.message : 'Unknown error' });
+  }
+});
+
+// Legacy route for backward compatibility
 app.get("/api/chat/history", async (req, res) => {
   const a = String(req.query.userA || "");
   const b = String(req.query.userB || "");
@@ -618,35 +800,20 @@ app.get("/api/chat/history", async (req, res) => {
   
   try {
     // ensure matched
-    const { data: matchData, error: matchError } = await supabase
-      .from('matches')
-      .select('id')
-      .or(`and(user_a_id.eq.${a},user_b_id.eq.${b}),and(user_a_id.eq.${b},user_b_id.eq.${a})`)
-      .single();
-
-    if (matchError || !matchData) {
+    const isMatched = await areUsersMatched(a, b);
+    if (!isMatched) {
       console.log(`Chat history blocked: Users ${a} and ${b} are not matched`);
       return res.status(403).json({ error: "Not matched" });
     }
     
     // First get the conversation ID
-    const { data: historyConvData, error: convError } = await supabase
-      .from('conversations')
-      .select('id')
-      .or(`and(user_a_id.eq.${a < b ? a : b},user_b_id.eq.${a < b ? b : a})`)
-      .single();
-
-    if (convError) {
-      // No conversation exists yet, return empty array
-      console.log(`No conversation found for users ${a} and ${b}`);
-      return res.json([]);
-    }
+    const convId = await getConversationId(a, b);
 
     // Then get messages for that conversation
     const { data, error } = await supabase
       .from('messages')
       .select('id, sender_id, content, created_at')
-      .eq('conversation_id', historyConvData.id)
+      .eq('conversation_id', convId)
       .order('created_at', { ascending: true });
 
     if (error) {
@@ -1055,9 +1222,52 @@ app.get("/api/payment/whatsapp-link", (_req, res) => {
   res.json({ url });
 });
 
+// Socket.IO event handlers
+io.on('connection', (socket) => {
+  console.log('User connected:', socket.id);
+  
+  // Handle user authentication
+  socket.on('authenticate', (data) => {
+    try {
+      const { userId } = data;
+      if (userId) {
+        socket.join(`user_${userId}`);
+        console.log(`User ${userId} joined their room`);
+        // Send acknowledgment
+        socket.emit('authenticated', { success: true, userId });
+      } else {
+        socket.emit('authenticated', { success: false, error: 'Missing userId' });
+      }
+    } catch (error) {
+      console.error('Authentication error:', error);
+      socket.emit('authenticated', { success: false, error: 'Authentication failed' });
+    }
+  });
+  
+  // Handle message acknowledgment
+  socket.on('message_received', (data) => {
+    console.log('Message received acknowledgment:', data);
+  });
+  
+  // Handle connection errors
+  socket.on('error', (error) => {
+    console.error('Socket error:', error);
+  });
+  
+
+  
+
+  
+  socket.on('disconnect', (reason) => {
+    console.log('User disconnected:', socket.id, 'Reason:', reason);
+    // Clean up any user-specific data if needed
+  });
+});
+
 const port = Number(process.env.PORT || 8080);
-app.listen(port, () => {
-  console.log(`API running on http://localhost:${port}`);
+server.listen(port, () => {
+  console.log(`Server running on http://localhost:${port}`);
+  console.log(`Socket.IO server ready for real-time chat`);
 });
 
 
