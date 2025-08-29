@@ -612,13 +612,13 @@ app.get("/api/matches", async (req, res) => {
         user_a_id,
         user_b_id,
         user_a:users!matches_user_a_id_fkey (
-          id, instagram_handle, location, custom_location,
+          id, name, instagram_handle, location, custom_location,
           profiles (
             bio, relationship_status, interest_1, interest_1_desc, interest_2, interest_2_desc, interest_3, interest_3_desc
           )
         ),
         user_b:users!matches_user_b_id_fkey (
-          id, instagram_handle, location, custom_location,
+          id, name, instagram_handle, location, custom_location,
           profiles (
             bio, relationship_status, interest_1, interest_1_desc, interest_2, interest_2_desc, interest_3, interest_3_desc
           )
@@ -640,6 +640,7 @@ app.get("/api/matches", async (req, res) => {
       return {
         id: match.id,
         other_user_id: otherUserId,
+        name: otherUser.name || '',
         bio: otherUser.profiles?.[0]?.bio || '',
         relationship_status: otherUser.profiles?.[0]?.relationship_status || '',
         interest_1: otherUser.profiles?.[0]?.interest_1 || '',
@@ -893,6 +894,88 @@ app.get("/api/user/pack", async (req, res) => {
   } catch (err) {
     console.error('Failed to fetch user pack:', err);
     res.status(500).json({ error: "Failed to fetch pack information" });
+  }
+});
+
+// Get complete profile data for a specific user
+app.get("/api/profile/:userId", async (req, res) => {
+  const { userId } = req.params;
+  if (!userId) return res.status(400).json({ error: "Missing userId" });
+  
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select(`
+        id,
+        name,
+        gender,
+        date_of_birth,
+        whatsapp_number,
+        instagram_handle,
+        location,
+        custom_location,
+        status,
+        profiles!inner(
+          bio,
+          relationship_status,
+          interest_1,
+          interest_1_desc,
+          interest_2,
+          interest_2_desc,
+          interest_3,
+          interest_3_desc,
+          is_visible,
+          created_at,
+          updated_at
+        )
+      `)
+      .eq('id', userId)
+      .eq('status', 'approved')
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') { // not found
+        return res.status(404).json({ error: "Profile not found" });
+      }
+      throw error;
+    }
+    
+    // Calculate age from date_of_birth
+    const birthDate = new Date(data.date_of_birth);
+    const today = new Date();
+    const age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate()) ? age - 1 : age;
+    
+    // Format the response
+    const profileData = {
+      id: data.id,
+      name: data.name,
+      gender: data.gender,
+      age: actualAge,
+      date_of_birth: data.date_of_birth,
+      whatsapp_number: data.whatsapp_number,
+      instagram_handle: data.instagram_handle,
+      location: data.location,
+      custom_location: data.custom_location,
+      status: data.status,
+      bio: data.profiles.bio,
+      relationship_status: data.profiles.relationship_status,
+      interest_1: data.profiles.interest_1,
+      interest_1_desc: data.profiles.interest_1_desc,
+      interest_2: data.profiles.interest_2,
+      interest_2_desc: data.profiles.interest_2_desc,
+      interest_3: data.profiles.interest_3,
+      interest_3_desc: data.profiles.interest_3_desc,
+      is_visible: data.profiles.is_visible,
+      profile_created_at: data.profiles.created_at,
+      profile_updated_at: data.profiles.updated_at
+    };
+    
+    res.json(profileData);
+  } catch (err) {
+    console.error('Failed to fetch profile:', err);
+    res.status(500).json({ error: "Failed to fetch profile information" });
   }
 });
 

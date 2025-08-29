@@ -7,6 +7,7 @@ import { Login } from './routes/Login'
 import { Dashboard } from './routes/Dashboard'
 import { Admin } from './routes/Admin'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import '../globals.css'
 
 const router = createBrowserRouter([
   { path: '/', element: <App /> },

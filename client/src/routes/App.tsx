@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 
 export function App() {
   return (
-    <div style={{minHeight: '100vh', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'}}>
+    <div className="bg-background min-h-screen">
       <div className="container">
         <Hero />
         <Features />
@@ -17,82 +17,33 @@ export function App() {
 
 function Hero() {
   return (
-    <section style={{
-      textAlign: 'center',
-      padding: '80px 20px',
-      color: 'white'
-    }}>
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '16px',
-        marginBottom: '32px'
-      }}>
-        <span style={{fontSize: '64px'}}>💕</span>
-        <h1 style={{
-          fontSize: '72px',
-          margin: 0,
-          fontWeight: 800,
-          background: 'linear-gradient(135deg, #ff6b6b, #feca57)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text'
-        }}>
+    <section className="text-center py-20 px-5 animate-fade-in">
+      <div className="flex items-center justify-center gap-4 mb-8">
+        <span className="text-6xl">💕</span>
+        <h1 className="font-heading text-6xl md:text-7xl font-black text-primary m-0">
           Whispyr
         </h1>
       </div>
       
-      <h2 style={{
-        fontSize: '32px',
-        fontWeight: 700,
-        margin: '0 0 24px 0',
-        maxWidth: '800px',
-        marginLeft: 'auto',
-        marginRight: 'auto'
-      }}>
+      <h2 className="font-heading text-3xl md:text-4xl font-bold text-foreground mb-6 max-w-4xl mx-auto">
         Find Your Perfect Match Through Words, Not Photos
       </h2>
       
-      <p style={{
-        fontSize: '20px',
-        color: 'rgba(255,255,255,0.9)',
-        maxWidth: '600px',
-        margin: '0 auto 40px',
-        lineHeight: 1.6
-      }}>
+      <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
         Experience authentic connections in a photo-free environment. Share your story, discover others, and connect when hearts align. ✨
       </p>
       
-      <div style={{display: 'flex', gap: '20px', justifyContent: 'center', flexWrap: 'wrap'}}>
-        <Link to="/register" style={{
-          ...btnPrimary,
-          fontSize: '18px',
-          padding: '16px 32px',
-          background: 'linear-gradient(135deg, #ff6b6b, #ee5a52)',
-          boxShadow: '0 8px 24px rgba(255,107,107,0.3)',
-          transform: 'translateY(0)',
-          transition: 'all 0.3s ease'
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'translateY(-2px)'
-          e.currentTarget.style.boxShadow = '0 12px 32px rgba(255,107,107,0.4)'
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'translateY(0)'
-          e.currentTarget.style.boxShadow = '0 8px 24px rgba(255,107,107,0.3)'
-        }}>
+      <div className="flex gap-5 justify-center flex-wrap">
+        <Link 
+          to="/register" 
+          className="bg-primary text-primary-foreground font-bold px-8 py-4 rounded-lg text-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+        >
           💖 Start Your Journey
         </Link>
-        <Link to="/login" style={{
-          ...btnGhost,
-          fontSize: '18px',
-          padding: '16px 32px',
-          border: '2px solid rgba(255,255,255,0.3)',
-          background: 'rgba(255,255,255,0.1)',
-          color: 'white',
-          backdropFilter: 'blur(10px)'
-        }}>
+        <Link 
+          to="/login" 
+          className="border-2 border-primary text-primary font-bold px-8 py-4 rounded-lg text-lg bg-transparent hover:bg-primary hover:text-primary-foreground transition-all duration-300"
+        >
           🔑 Login
         </Link>
       </div>
@@ -125,45 +76,27 @@ function Features() {
   ]
 
   return (
-    <section style={{
-      padding: '80px 20px',
-      background: 'rgba(255,255,255,0.95)',
-      borderRadius: '24px',
-      margin: '40px 0',
-      backdropFilter: 'blur(20px)'
-    }}>
-      <div style={{textAlign: 'center', marginBottom: '60px'}}>
-        <h2 style={{fontSize: '42px', fontWeight: 800, color: '#2d3748', margin: '0 0 16px 0'}}>
+    <section className="py-20 px-5 bg-card rounded-3xl my-10 animate-slide-up">
+      <div className="text-center mb-15">
+        <h2 className="font-heading text-4xl md:text-5xl font-black text-card-foreground mb-4">
           Why Choose Whispyr?
         </h2>
-        <p style={{fontSize: '18px', color: '#718096', maxWidth: '600px', margin: '0 auto'}}>
+        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
           Experience dating the way it should be - authentic, meaningful, and focused on what really matters.
         </p>
       </div>
       
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-        gap: '32px'
-      }}>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
         {features.map((feature, index) => (
-          <div key={index} style={{
-            background: 'white',
-            padding: '32px',
-            borderRadius: '20px',
-            textAlign: 'center',
-            boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
-            transition: 'transform 0.3s ease',
-            cursor: 'pointer'
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-8px)'}
-          onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+          <div 
+            key={index} 
+            className="bg-background p-8 rounded-2xl text-center shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2 cursor-pointer"
           >
-            <div style={{fontSize: '48px', marginBottom: '20px'}}>{feature.icon}</div>
-            <h3 style={{fontSize: '24px', fontWeight: 700, color: '#2d3748', margin: '0 0 16px 0'}}>
+            <div className="text-5xl mb-5">{feature.icon}</div>
+            <h3 className="font-heading text-2xl font-bold text-card-foreground mb-4">
               {feature.title}
             </h3>
-            <p style={{fontSize: '16px', color: '#718096', lineHeight: 1.6, margin: 0}}>
+            <p className="text-muted-foreground leading-relaxed">
               {feature.description}
             </p>
           </div>
@@ -175,43 +108,33 @@ function Features() {
 
 function Benefits() {
   return (
-    <section style={{
-      padding: '80px 20px',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      borderRadius: '24px',
-      margin: '40px 0',
-      color: 'white'
-    }}>
-      <div style={{textAlign: 'center', marginBottom: '60px'}}>
-        <h2 style={{fontSize: '42px', fontWeight: 800, margin: '0 0 16px 0'}}>
+    <section className="py-20 px-5 bg-gradient-to-br from-primary to-secondary rounded-3xl my-10 text-primary-foreground animate-scale-in">
+      <div className="text-center mb-15">
+        <h2 className="font-heading text-4xl md:text-5xl font-black mb-4">
           The Whispyr Difference
         </h2>
-        <p style={{fontSize: '18px', opacity: 0.9, maxWidth: '600px', margin: '0 auto'}}>
+        <p className="text-lg opacity-90 max-w-2xl mx-auto">
           Join thousands who've found meaningful connections through our unique approach to online dating.
         </p>
       </div>
       
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-        gap: '40px'
-      }}>
-        <div style={{textAlign: 'center'}}>
-          <div style={{fontSize: '64px', marginBottom: '16px'}}>🎯</div>
-          <h3 style={{fontSize: '28px', fontWeight: 700, margin: '0 0 8px 0'}}>Quality Over Quantity</h3>
-          <p style={{fontSize: '16px', opacity: 0.9}}>Focus on meaningful connections, not endless swiping</p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+        <div className="text-center">
+          <div className="text-6xl mb-4">🎯</div>
+          <h3 className="font-heading text-2xl font-bold mb-2">Quality Over Quantity</h3>
+          <p className="opacity-90">Focus on meaningful connections, not endless swiping</p>
         </div>
         
-        <div style={{textAlign: 'center'}}>
-          <div style={{fontSize: '64px', marginBottom: '16px'}}>🧠</div>
-          <h3 style={{fontSize: '28px', fontWeight: 700, margin: '0 0 8px 0'}}>Intellectual Connection</h3>
-          <p style={{fontSize: '16px', opacity: 0.9}}>Connect minds first, hearts follow naturally</p>
+        <div className="text-center">
+          <div className="text-6xl mb-4">🧠</div>
+          <h3 className="font-heading text-2xl font-bold mb-2">Intellectual Connection</h3>
+          <p className="opacity-90">Connect minds first, hearts follow naturally</p>
         </div>
         
-        <div style={{textAlign: 'center'}}>
-          <div style={{fontSize: '64px', marginBottom: '16px'}}>🌟</div>
-          <h3 style={{fontSize: '28px', fontWeight: 700, margin: '0 0 8px 0'}}>Authentic Relationships</h3>
-          <p style={{fontSize: '16px', opacity: 0.9}}>Build genuine bonds based on personality and values</p>
+        <div className="text-center">
+          <div className="text-6xl mb-4">🌟</div>
+          <h3 className="font-heading text-2xl font-bold mb-2">Authentic Relationships</h3>
+          <p className="opacity-90">Build genuine bonds based on personality and values</p>
         </div>
       </div>
     </section>
@@ -243,48 +166,26 @@ function HowItWorks() {
   ]
 
   return (
-    <section style={{
-      padding: '80px 20px',
-      background: 'rgba(255,255,255,0.95)',
-      borderRadius: '24px',
-      margin: '40px 0'
-    }}>
-      <div style={{textAlign: 'center', marginBottom: '60px'}}>
-        <h2 style={{fontSize: '42px', fontWeight: 800, color: '#2d3748', margin: '0 0 16px 0'}}>
+    <section className="py-20 px-5 bg-card rounded-3xl my-10 animate-slide-up">
+      <div className="text-center mb-15">
+        <h2 className="font-heading text-4xl md:text-5xl font-black text-card-foreground mb-4">
           How Whispyr Works
         </h2>
-        <p style={{fontSize: '18px', color: '#718096', maxWidth: '600px', margin: '0 auto'}}>
+        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
           Four simple steps to finding your perfect match through authentic connections.
         </p>
       </div>
       
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-        gap: '40px'
-      }}>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
         {steps.map((step, index) => (
-          <div key={index} style={{textAlign: 'center'}}>
-            <div style={{
-              width: '80px',
-              height: '80px',
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #ff6b6b, #ee5a52)',
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '32px',
-              fontWeight: 800,
-              margin: '0 auto 24px',
-              boxShadow: '0 8px 24px rgba(255,107,107,0.3)'
-            }}>
+          <div key={index} className="text-center">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-secondary text-primary-foreground flex items-center justify-center text-3xl font-black mx-auto mb-6 shadow-lg">
               {step.step}
             </div>
-            <h3 style={{fontSize: '24px', fontWeight: 700, color: '#2d3748', margin: '0 0 16px 0'}}>
+            <h3 className="font-heading text-2xl font-bold text-card-foreground mb-4">
               {step.title}
             </h3>
-            <p style={{fontSize: '16px', color: '#718096', lineHeight: 1.6}}>
+            <p className="text-muted-foreground leading-relaxed">
               {step.description}
             </p>
           </div>
@@ -314,50 +215,28 @@ function Testimonials() {
   ]
 
   return (
-    <section style={{
-      padding: '80px 20px',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      borderRadius: '24px',
-      margin: '40px 0',
-      color: 'white'
-    }}>
-      <div style={{textAlign: 'center', marginBottom: '60px'}}>
-        <h2 style={{fontSize: '42px', fontWeight: 800, margin: '0 0 16px 0'}}>
+    <section className="py-20 px-5 bg-gradient-to-br from-primary to-secondary rounded-3xl my-10 text-primary-foreground animate-scale-in">
+      <div className="text-center mb-15">
+        <h2 className="font-heading text-4xl md:text-5xl font-black mb-4">
           Success Stories
         </h2>
-        <p style={{fontSize: '18px', opacity: 0.9}}>
+        <p className="text-lg opacity-90">
           Real people, real connections, real love stories ✨
         </p>
       </div>
       
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-        gap: '32px'
-      }}>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {testimonials.map((testimonial, index) => (
-          <div key={index} style={{
-            background: 'rgba(255,255,255,0.1)',
-            padding: '32px',
-            borderRadius: '20px',
-            backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255,255,255,0.2)'
-          }}>
-            <p style={{
-              fontSize: '16px',
-              lineHeight: 1.6,
-              margin: '0 0 20px 0',
-              fontStyle: 'italic'
-            }}>
+          <div 
+            key={index} 
+            className="bg-white bg-opacity-10 p-8 rounded-2xl backdrop-blur-lg border border-white border-opacity-20"
+          >
+            <p className="text-base leading-relaxed mb-5 italic">
               "{testimonial.text}"
             </p>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
-              <strong style={{fontSize: '16px'}}>{testimonial.name}</strong>
-              <span style={{fontSize: '14px', opacity: 0.8}}>{testimonial.location}</span>
+            <div className="flex justify-between items-center">
+              <strong className="text-base">{testimonial.name}</strong>
+              <span className="text-sm opacity-80">{testimonial.location}</span>
             </div>
           </div>
         ))}
@@ -368,94 +247,45 @@ function Testimonials() {
 
 function CTA() {
   return (
-    <section style={{
-      textAlign: 'center',
-      padding: '80px 20px',
-      color: 'white'
-    }}>
-      <h2 style={{
-        fontSize: '48px',
-        fontWeight: 800,
-        margin: '0 0 24px 0'
-      }}>
+    <section className="text-center py-20 px-5 animate-fade-in">
+      <h2 className="font-heading text-5xl md:text-6xl font-black text-foreground mb-6">
         Ready to Find Your Perfect Match?
       </h2>
-      <p style={{
-        fontSize: '20px',
-        opacity: 0.9,
-        maxWidth: '600px',
-        margin: '0 auto 40px'
-      }}>
+      <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-10">
         Join Whispyr today and start building meaningful connections that go beyond the surface. Your soulmate is waiting! 💕
       </p>
       
-      <div style={{display: 'flex', gap: '20px', justifyContent: 'center', flexWrap: 'wrap'}}>
-        <Link to="/register" style={{
-          ...btnPrimary,
-          fontSize: '20px',
-          padding: '18px 36px',
-          background: 'linear-gradient(135deg, #ff6b6b, #ee5a52)',
-          boxShadow: '0 8px 24px rgba(255,107,107,0.3)'
-        }}>
+      <div className="flex gap-5 justify-center flex-wrap mb-15">
+        <Link 
+          to="/register" 
+          className="bg-primary text-primary-foreground font-bold px-10 py-5 rounded-lg text-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+        >
           💖 Join Whispyr Now
         </Link>
       </div>
       
-      <div style={{
-        marginTop: '60px',
-        padding: '40px',
-        background: 'rgba(255,255,255,0.1)',
-        borderRadius: '20px',
-        backdropFilter: 'blur(20px)'
-      }}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-          gap: '40px',
-          textAlign: 'center'
-        }}>
+      <div className="bg-card p-10 rounded-2xl shadow-lg">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-10 text-center">
           <div>
-            <div style={{fontSize: '32px', fontWeight: 800, marginBottom: '8px'}}>10K+</div>
-            <div style={{fontSize: '14px', opacity: 0.8}}>Happy Members</div>
+            <div className="font-heading text-3xl font-black text-primary mb-2">10K+</div>
+            <div className="text-sm text-muted-foreground">Happy Members</div>
           </div>
           <div>
-            <div style={{fontSize: '32px', fontWeight: 800, marginBottom: '8px'}}>500+</div>
-            <div style={{fontSize: '14px', opacity: 0.8}}>Success Stories</div>
+            <div className="font-heading text-3xl font-black text-primary mb-2">500+</div>
+            <div className="text-sm text-muted-foreground">Success Stories</div>
           </div>
           <div>
-            <div style={{fontSize: '32px', fontWeight: 800, marginBottom: '8px'}}>95%</div>
-            <div style={{fontSize: '14px', opacity: 0.8}}>Satisfaction Rate</div>
+            <div className="font-heading text-3xl font-black text-primary mb-2">95%</div>
+            <div className="text-sm text-muted-foreground">Satisfaction Rate</div>
           </div>
           <div>
-            <div style={{fontSize: '32px', fontWeight: 800, marginBottom: '8px'}}>24/7</div>
-            <div style={{fontSize: '14px', opacity: 0.8}}>Support Available</div>
+            <div className="font-heading text-3xl font-black text-primary mb-2">24/7</div>
+            <div className="text-sm text-muted-foreground">Support Available</div>
           </div>
         </div>
       </div>
     </section>
   )
-}
-
-function Card({children}:{children:React.ReactNode}){
-  return (
-    <div style={{background:'var(--card)',border:'1px solid #26263a',borderRadius:16,padding:20,boxShadow:'0 10px 30px rgba(0,0,0,.3)'}}>
-      {children}
-    </div>
-  )
-}
-
-const btnPrimary: React.CSSProperties = {
-  background:'linear-gradient(135deg,var(--accent),var(--accent2))',
-  padding:'12px 18px',
-  borderRadius:12,
-  color:'white',
-  fontWeight:700
-}
-const btnGhost: React.CSSProperties = {
-  padding:'12px 18px',
-  borderRadius:12,
-  color:'var(--text)',
-  border:'1px solid #2e2e40'
 }
 
 
