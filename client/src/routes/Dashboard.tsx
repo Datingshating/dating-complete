@@ -2782,11 +2782,35 @@ export default ChatPanel
 
 function Modal({children,onClose}:{children:React.ReactNode;onClose:()=>void}){
   return (
-    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',display:'grid',placeItems:'center'}} onClick={onClose}>
-      <div style={{background:'var(--card)',border:'1px solid #2f2f40',borderRadius:12,padding:16,width:520}} onClick={e=>e.stopPropagation()}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',display:'grid',placeItems:'center',padding:'16px',zIndex:1000}} onClick={onClose}>
+      <div style={{
+        background:'var(--card)',
+        border:'1px solid #2f2f40',
+        borderRadius:12,
+        padding:16,
+        width:'100%',
+        maxWidth:520,
+        maxHeight:'90vh',
+        overflow:'auto',
+        position:'relative'
+      }} onClick={e=>e.stopPropagation()}>
+        <div style={{
+          display:'flex',
+          justifyContent:'space-between',
+          alignItems:'center',
+          position:'sticky',
+          top:0,
+          background:'var(--card)',
+          paddingBottom:'8px',
+          zIndex:1
+        }}>
           <div style={{fontWeight:800}}>Details</div>
-          <button onClick={onClose} style={btnGhost}>Close</button>
+          <button onClick={onClose} style={{
+            ...btnGhost,
+            minWidth:'60px',
+            fontSize:'14px',
+            padding:'8px 12px'
+          }}>Close</button>
         </div>
         <div style={{marginTop:8}}>{children}</div>
       </div>
