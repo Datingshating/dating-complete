@@ -24,7 +24,7 @@ type Profile = {
   profile_created_at?:string;
   profile_updated_at?:string;
 }
-type MatchItem = { id:string; other_user_id:string; name:string; bio:string; relationship_status:string; interest_1:string; interest_1_desc:string; interest_2:string; interest_2_desc:string; interest_3:string; interest_3_desc:string; instagram_handle?: string; location?:string; custom_location?:string }
+type MatchItem = { id:string; other_user_id:string; name:string; bio:string; relationship_status:string; interest_1:string; interest_1_desc:string; interest_2:string; interest_2_desc:string; interest_3:string; interest_3_desc:string; instagram_handle?: string; location?:string; custom_location?:string; age?:number }
 
 export function Dashboard(){
   const navigate = useNavigate()
@@ -53,6 +53,8 @@ export function Dashboard(){
   const [sidebarExpanded, setSidebarExpanded] = useState(true)
   const [filtersVisible, setFiltersVisible] = useState(false)
   const [selectedChatUser, setSelectedChatUser] = useState<string | null>(null)
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false)
+  const [showSuccessAnimation, setShowSuccessAnimation] = useState(false)
   const userId = localStorage.getItem('userId') || ''
   const token = localStorage.getItem('authToken') || ''
   const socketRef = useRef<Socket | null>(null)
@@ -95,6 +97,8 @@ export function Dashboard(){
       const matchesData = await matchesRes.json()
       const incomingData = await incomingRes.json()
       const meData = await meRes.json()
+
+
 
       setFeed(Array.isArray(feedData) ? feedData : [])
       setMatches(Array.isArray(matchesData) ? matchesData : [])
@@ -157,9 +161,21 @@ export function Dashboard(){
     return () => clearInterval(interval)
   }, [userId])
 
-  async function sendRequest(toUserId:string){
-    const msg = prompt('Write a short message (max 200 chars)')||''
-    if (!msg.trim()) return
+  // Close profile dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element
+      if (showProfileDropdown && !target.closest('[data-profile-dropdown]')) {
+        setShowProfileDropdown(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showProfileDropdown])
+
+  async function sendRequest(toUserId:string, message:string){
+    if (!message.trim()) return
     
     try {
       const response = await fetch(import.meta.env.VITE_API_URL + '/api/requests',{
@@ -168,11 +184,14 @@ export function Dashboard(){
           'Content-Type':'application/json',
           'Authorization': `Bearer ${token}`
         }, 
-        body: JSON.stringify({fromUserId:userId,toUserId,message:msg})
+        body: JSON.stringify({fromUserId:userId,toUserId,message:message})
       })
       
       if (response.ok) {
-      alert('Request sent successfully!')
+        // Show beautiful success animation
+        setShowSuccessAnimation(true)
+        setTimeout(() => setShowSuccessAnimation(false), 3000) // Hide after 3 seconds
+        
         // Immediately refresh data to show the sent request
         fetchData()
         
@@ -220,58 +239,131 @@ export function Dashboard(){
   }
 
   return (
-    <div style={{
+    <div className="responsive-main" style={{
       display: 'flex', 
       flexDirection: 'column',
       minHeight: '100vh', 
-      background: '#f8f9fa',
-      paddingBottom: '80px' // Space for bottom nav
+      background: '#F5F1E8',
+      paddingBottom: '80px', // Space for bottom nav
+      paddingLeft: '16px',
+      paddingRight: '16px',
+      paddingTop: '16px'
     }}>
       {/* Top Header */}
-      <header style={{
-        background: '#FDD8D6',
-        color: '#2D3748',
+      <header className="responsive-header" style={{
+        background: '#EDE8D0',
+        color: '#8B4513',
         padding: '16px 20px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+        borderBottom: '2px solid #8B4513',
         position: 'sticky',
         top: 0,
         zIndex: 100
       }}>
         <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
-          <h1 style={{margin: 0, fontSize: 28, fontWeight: 800}}>Whispyr</h1>
+          <h1 style={{
+            margin: 0, 
+            fontSize: 28, 
+            fontWeight: 800
+          }}>Whispyr</h1>
         </div>
         <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
-        <div style={{textAlign: 'right'}}>
-          <div style={{fontSize: '14px', opacity: 0.7}}>Welcome back</div>
-          <div style={{fontSize: '16px', fontWeight: 600}}>{me?.name || 'User'}</div>
-        </div>
-          <button 
-            onClick={handleLogout}
-            style={{
-              background: '#FDD8D6',
-              border: '1px solid #E2E8F0',
-              color: '#2D3748',
-              padding: '8px 16px',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#F7CAC9'
-              e.currentTarget.style.transform = 'translateY(-1px)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = '#FDD8D6'
-              e.currentTarget.style.transform = 'translateY(0)'
-            }}
-          >
-            Logout
-          </button>
+          <div style={{position: 'relative'}} data-profile-dropdown>
+            <button 
+              className="profile-btn"
+              onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                background: '#8B4513',
+                color: 'white',
+                border: 'none',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#A0522D'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#8B4513'
+              }}
+            >
+              {me?.name?.charAt(0).toUpperCase() || 'U'}
+            </button>
+            
+            {showProfileDropdown && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                right: 0,
+                marginTop: '8px',
+                background: 'white',
+                borderRadius: '8px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                border: '1px solid #e9ecef',
+                minWidth: '160px',
+                zIndex: 1000
+              }}>
+                <button
+                  onClick={() => {
+                    setActiveTab('profile')
+                    setShowProfileDropdown(false)
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    background: 'transparent',
+                    border: 'none',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    color: '#2c2c2c',
+                    borderBottom: '1px solid #f1f3f4',
+                    transition: 'background 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#f8f9fa'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent'
+                  }}
+                >
+                  👤 View Profile
+                </button>
+                <button
+                  onClick={handleLogout}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    background: 'transparent',
+                    border: 'none',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    color: '#dc2626',
+                    transition: 'background 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#fef2f2'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent'
+                  }}
+                >
+                  🚪 Logout
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
@@ -510,13 +602,13 @@ export function Dashboard(){
 
       {/* Bottom Navigation */}
       {!selectedChatUser && (
-        <nav style={{
+        <nav className="responsive-nav" style={{
           position: 'fixed',
           bottom: 0,
           left: 0,
           right: 0,
-          background: '#F9DED7',
-          borderTop: '1px solid #E2E8F0',
+          background: '#EDE8D0',
+          borderTop: '1px solid #8B4513',
           display: 'flex',
           justifyContent: 'space-around',
           alignItems: 'center',
@@ -528,40 +620,40 @@ export function Dashboard(){
         }}>
           <button
             style={{
-              background: 'transparent',
+              background: activeTab === 'dating' ? '#E8F5E8' : 'transparent',
               border: 'none',
               cursor: 'pointer',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               gap: '3px',
-              padding: '6px 8px',
+              padding: '8px 12px',
               borderRadius: '12px',
-              color: activeTab === 'dating' ? '#8B4513' : '#6B7280',
+              color: activeTab === 'dating' ? '#8B4513' : '#000000',
               fontSize: '10px',
               fontWeight: 600,
               transition: 'all 0.2s ease'
             }}
             onClick={() => setActiveTab('dating')}
           >
-            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+            <svg width="20" height="20" fill={activeTab === 'dating' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
             </svg>
-            Lover
+            Discover
           </button>
 
           <button
             style={{
-              background: 'transparent',
+              background: activeTab === 'matches' ? '#E8F5E8' : 'transparent',
               border: 'none',
               cursor: 'pointer',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               gap: '3px',
-              padding: '6px 8px',
+              padding: '8px 12px',
               borderRadius: '12px',
-              color: activeTab === 'matches' ? '#8B4513' : '#6B7280',
+              color: activeTab === 'matches' ? '#8B4513' : '#000000',
               fontSize: '10px',
               fontWeight: 600,
               transition: 'all 0.2s ease',
@@ -569,16 +661,16 @@ export function Dashboard(){
             }}
             onClick={() => setActiveTab('matches')}
           >
-            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M16 4c0-1.11.89-2 2-2s2 .89 2 2-.89 2-2 2-2-.89-2-2zm4 18v-6h2.5l-2.54-7.63A1.5 1.5 0 0 0 18.54 8H17c-.8 0-1.54.37-2.01 1l-1.7 2.26c-.19.25-.29.55-.29.85V16h-1.5v6h6zM12.5 11.5c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5S11 9.17 11 10s.67 1.5 1.5 1.5zM5.5 6c1.11 0 2-.89 2-2s-.89-2-2-2-2 .89-2 2 .89 2 2 2zm2 16v-7H9c-.55 0-1-.45-1-1V9c0-.55.45-1 1-1h1.5c.83 0 1.5-.67 1.5-1.5S11.33 5 10.5 5H9c-1.1 0-2 .9-2 2v6c0 .55.45 1 1 1h1.5v7h-3z"/>
+            <svg width="20" height="20" fill={activeTab === 'matches' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
             </svg>
             Matches
             {matches.length > 0 && (
-              <div style={{
+              <div className="badge" style={{
                 position: 'absolute',
                 top: '2px',
                 right: '6px',
-                background: '#dc2626',
+                background: '#FF6B35',
                 color: 'white',
                 borderRadius: '50%',
                 width: '16px',
@@ -596,40 +688,40 @@ export function Dashboard(){
 
           <button
             style={{
-              background: 'transparent',
+              background: activeTab === 'chat' ? '#E8F5E8' : 'transparent',
               border: 'none',
               cursor: 'pointer',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               gap: '3px',
-              padding: '6px 8px',
+              padding: '8px 12px',
               borderRadius: '12px',
-              color: activeTab === 'chat' ? '#8B4513' : '#6B7280',
+              color: activeTab === 'chat' ? '#8B4513' : '#000000',
               fontSize: '10px',
               fontWeight: 600,
               transition: 'all 0.2s ease'
             }}
             onClick={() => setActiveTab('chat')}
           >
-            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
+            <svg width="20" height="20" fill={activeTab === 'chat' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
             </svg>
             Chat
           </button>
 
           <button
             style={{
-              background: 'transparent',
+              background: activeTab === 'requests' ? '#E8F5E8' : 'transparent',
               border: 'none',
               cursor: 'pointer',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               gap: '3px',
-              padding: '6px 8px',
+              padding: '8px 12px',
               borderRadius: '12px',
-              color: activeTab === 'requests' ? '#8B4513' : '#6B7280',
+              color: activeTab === 'requests' ? '#8B4513' : '#000000',
               fontSize: '10px',
               fontWeight: 600,
               transition: 'all 0.2s ease',
@@ -637,16 +729,16 @@ export function Dashboard(){
             }}
             onClick={() => setActiveTab('requests')}
           >
-            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+            <svg width="20" height="20" fill={activeTab === 'requests' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
             </svg>
             Requests
             {incoming.length > 0 && (
-              <div style={{
+              <div className="badge" style={{
                 position: 'absolute',
                 top: '2px',
                 right: '6px',
-                background: '#dc2626',
+                background: '#FF6B35',
                 color: 'white',
                 borderRadius: '50%',
                 width: '16px',
@@ -664,53 +756,226 @@ export function Dashboard(){
 
           <button
             style={{
-              background: 'transparent',
+              background: activeTab === 'packs' ? '#E8F5E8' : 'transparent',
               border: 'none',
               cursor: 'pointer',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               gap: '3px',
-              padding: '6px 8px',
+              padding: '8px 12px',
               borderRadius: '12px',
-              color: activeTab === 'packs' ? '#8B4513' : '#6B7280',
+              color: activeTab === 'packs' ? '#8B4513' : '#000000',
               fontSize: '10px',
               fontWeight: 600,
               transition: 'all 0.2s ease'
             }}
             onClick={() => setActiveTab('packs')}
           >
-            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            <svg width="20" height="20" fill={activeTab === 'packs' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
             </svg>
             Packs
           </button>
 
-          <button
-            style={{
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '3px',
-              padding: '6px 8px',
-              borderRadius: '12px',
-              color: activeTab === 'profile' ? '#8B4513' : '#6B7280',
-              fontSize: '10px',
-              fontWeight: 600,
-              transition: 'all 0.2s ease'
-            }}
-            onClick={() => setActiveTab('profile')}
-          >
-            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-            </svg>
-            Profile
-          </button>
+
         </nav>
       )}
+
+      {/* Beautiful Success Animation */}
+      {showSuccessAnimation && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.7)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          animation: 'fadeIn 0.3s ease-out'
+        }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #10b981, #059669)',
+            borderRadius: '24px',
+            padding: '40px',
+            textAlign: 'center',
+            color: 'white',
+            boxShadow: '0 20px 40px rgba(16, 185, 129, 0.3)',
+            animation: 'slideInUp 0.5s ease-out',
+            position: 'relative',
+            overflow: 'hidden',
+            maxWidth: '90%',
+            width: '400px'
+          }}>
+            {/* Animated Background */}
+            <div style={{
+              position: 'absolute',
+              top: '-50%',
+              left: '-50%',
+              width: '200%',
+              height: '200%',
+              background: 'radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px)',
+              backgroundSize: '20px 20px',
+              animation: 'float 6s ease-in-out infinite',
+              pointerEvents: 'none'
+            }} />
+            
+            {/* Success Icon */}
+            <div style={{
+              width: '80px',
+              height: '80px',
+              borderRadius: '50%',
+              background: 'rgba(255, 255, 255, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 24px',
+              animation: 'pulse 2s ease-in-out infinite',
+              position: 'relative',
+              zIndex: 1
+            }}>
+              <svg 
+                width="40" 
+                height="40" 
+                fill="white" 
+                viewBox="0 0 24 24"
+                style={{
+                  animation: 'checkmark 0.6s ease-out 0.3s both'
+                }}
+              >
+                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+              </svg>
+            </div>
+
+            {/* Success Message */}
+            <h3 style={{
+              margin: '0 0 12px 0',
+              fontSize: '24px',
+              fontWeight: '700',
+              position: 'relative',
+              zIndex: 1,
+              animation: 'slideInUp 0.6s ease-out 0.2s both'
+            }}>
+              🎉 Request Sent!
+            </h3>
+            
+            <p style={{
+              margin: '0 0 24px 0',
+              fontSize: '16px',
+              opacity: 0.9,
+              lineHeight: 1.5,
+              position: 'relative',
+              zIndex: 1,
+              animation: 'slideInUp 0.6s ease-out 0.4s both'
+            }}>
+              Your message has been sent successfully!<br/>
+              They'll receive your request soon.
+            </p>
+
+            {/* Floating Hearts */}
+            <div style={{
+              position: 'absolute',
+              top: '20px',
+              left: '20px',
+              fontSize: '24px',
+              animation: 'float 3s ease-in-out infinite',
+              opacity: 0.6
+            }}>💕</div>
+            <div style={{
+              position: 'absolute',
+              top: '30px',
+              right: '30px',
+              fontSize: '20px',
+              animation: 'float 4s ease-in-out infinite 1s',
+              opacity: 0.7
+            }}>✨</div>
+            <div style={{
+              position: 'absolute',
+              bottom: '25px',
+              left: '30px',
+              fontSize: '18px',
+              animation: 'float 3.5s ease-in-out infinite 0.5s',
+              opacity: 0.5
+            }}>💫</div>
+            <div style={{
+              position: 'absolute',
+              bottom: '20px',
+              right: '25px',
+              fontSize: '22px',
+              animation: 'float 4.5s ease-in-out infinite 1.5s',
+              opacity: 0.6
+            }}>💖</div>
+
+            {/* Progress Bar */}
+            <div style={{
+              width: '100%',
+              height: '4px',
+              background: 'rgba(255, 255, 255, 0.2)',
+              borderRadius: '2px',
+              overflow: 'hidden',
+              marginTop: '20px',
+              position: 'relative',
+              zIndex: 1
+            }}>
+              <div style={{
+                width: '100%',
+                height: '100%',
+                background: 'rgba(255, 255, 255, 0.8)',
+                borderRadius: '2px',
+                animation: 'progress 3s linear'
+              }} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CSS Animations */}
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        
+        @keyframes slideInUp {
+          from { 
+            opacity: 0; 
+            transform: translateY(30px); 
+          }
+          to { 
+            opacity: 1; 
+            transform: translateY(0); 
+          }
+        }
+        
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.05); }
+        }
+        
+        @keyframes checkmark {
+          from { 
+            opacity: 0; 
+            transform: scale(0.5) rotate(-45deg); 
+          }
+          to { 
+            opacity: 1; 
+            transform: scale(1) rotate(0deg); 
+          }
+        }
+        
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-10px); }
+        }
+        
+        @keyframes progress {
+          from { transform: translateX(-100%); }
+          to { transform: translateX(0%); }
+        }
+      `}</style>
     </div>
   )
 }
@@ -722,7 +987,7 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
   setFilters: (filters: any) => void;
   filtersVisible: boolean;
   setFiltersVisible: (visible: boolean) => void;
-  onSendRequest: (id: string) => void;
+  onSendRequest: (id: string, message: string) => void;
   onViewProfile: (profile: Profile) => void;
 }) {
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -730,13 +995,71 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
   const [showMessagePrompt, setShowMessagePrompt] = useState(false)
   const [message, setMessage] = useState('')
 
-  const currentProfile = feed[currentIndex]
+  const calculateAge = (dateOfBirth: string | undefined, age: number | undefined): number => {
+    // First priority: Use server-calculated age if available
+    if (age && age > 0) return age
+    
+    // Fallback: Calculate age from date_of_birth if available
+    if (dateOfBirth) {
+      const today = new Date()
+      const birthDate = new Date(dateOfBirth)
+      
+      // Check if birthDate is valid
+      if (isNaN(birthDate.getTime())) return 0
+      
+      let calculatedAge = today.getFullYear() - birthDate.getFullYear()
+      const monthDiff = today.getMonth() - birthDate.getMonth()
+      
+      // Adjust age if birthday hasn't occurred this year
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        calculatedAge--
+      }
+      
+      return calculatedAge > 0 ? calculatedAge : 0
+    }
+    
+    return 0
+  }
+
+  // Apply filters to feed
+  const filteredFeed = feed.filter(profile => {
+    const age = calculateAge(profile.date_of_birth, profile.age)
+    
+    // Age filter
+    if (age < filters.ageRange[0] || age > filters.ageRange[1]) {
+      return false
+    }
+    
+    // Gender filter
+    if (filters.gender && profile.gender !== filters.gender) {
+      return false
+    }
+    
+    // Relationship status filter
+    if (filters.relationshipStatus && profile.relationship_status !== filters.relationshipStatus) {
+      return false
+    }
+    
+    // Location filter
+    if (filters.location && profile.location && !profile.location.toLowerCase().includes(filters.location.toLowerCase())) {
+      return false
+    }
+    
+    return true
+  })
+
+  const currentProfile = filteredFeed[currentIndex]
+
+  // Reset index when filters change to ensure valid index
+  useEffect(() => {
+    setCurrentIndex(0)
+  }, [filters])
 
   const handleSkip = () => {
     if (isAnimating) return
     setIsAnimating(true)
     setTimeout(() => {
-      setCurrentIndex(prev => (prev + 1) % feed.length)
+      setCurrentIndex(prev => (prev + 1) % filteredFeed.length)
       setIsAnimating(false)
     }, 300)
   }
@@ -753,7 +1076,7 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
     }
     
     // Send the request with the custom message
-    onSendRequest(currentProfile.id)
+    onSendRequest(currentProfile?.id || '', message)
     setMessage('')
     setShowMessagePrompt(false)
     handleSkip() // Move to next profile after sending request
@@ -765,74 +1088,123 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
   }
 
   const getGenderIcon = (gender: string) => {
-    switch (gender?.toLowerCase()) {
-      case 'male': return '👨'
-      case 'female': return '👩'
-      case 'non-binary': return '🧑'
-      default: return '👤'
-    }
-  }
-
-  if (feed.length === 0) {
     return (
-      <div className="text-center py-10">
-        <div className="text-5xl mb-4">💔</div>
-        <h3 className="m-0 mb-2 text-card-foreground font-heading text-xl font-bold">No profiles available</h3>
-        <p className="text-muted-foreground m-0">Check back later for new profiles!</p>
-      </div>
+      <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="4"/>
+      </svg>
     )
   }
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-4">
-        <div>
-          <span className="text-muted-foreground text-xs">
-            Profile {currentIndex + 1} of {feed.length}
-          </span>
-        </div>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'flex-end',
+        alignItems: 'center',
+        marginBottom: '16px'
+      }}>
         <button 
-          className="bg-secondary text-secondary-foreground font-bold px-3 py-2 rounded-lg text-xs shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex items-center gap-1.5"
           onClick={() => setFiltersVisible(!filtersVisible)}
+          style={{
+            background: '#EDE8D0',
+            color: '#8B4513',
+            border: '1px solid #8B4513',
+            borderRadius: '8px',
+            padding: '8px 12px',
+            fontSize: '13px',
+            fontWeight: '500',
+            cursor: 'pointer'
+          }}
         >
-          🔍 {filtersVisible ? 'Hide' : 'Show'} Filters
+          <svg width="14" height="14" fill="#A0522D" viewBox="0 0 24 24" style={{marginRight: '6px'}}>
+            <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+          </svg>
+          {filtersVisible ? 'Hide Filters' : 'Show Filters'}
         </button>
       </div>
 
       {/* Collapsible Filters */}
       {filtersVisible && (
-        <div className="bg-card rounded-2xl p-4 mb-4 shadow-lg">
-          <h3 className="m-0 mb-3 font-heading text-lg font-bold text-card-foreground">🔍 Filters</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div style={{
+          background: '#F5F1E8',
+          borderRadius: '8px',
+          padding: '16px',
+          marginBottom: '16px',
+          border: '1px solid #8B4513'
+        }}>
+          <h3 style={{
+            margin: '0 0 16px 0',
+            fontSize: '16px',
+            fontWeight: '600',
+            color: '#8B4513'
+          }}>
+            Filters
+          </h3>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '16px'
+          }}>
             <div>
-              <label className="block mb-1.5 font-bold text-card-foreground text-xs">Age Range</label>
-              <div className="flex items-center gap-2">
+              <label style={{
+                display: 'block',
+                marginBottom: '6px',
+                fontWeight: '500',
+                color: '#8B4513',
+                fontSize: '13px'
+              }}>
+                Age Range
+              </label>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px'
+              }}>
                 <input 
                   type="range" 
                   min="18" 
                   max="70" 
                   value={filters.ageRange[0]} 
                   onChange={(e) => setFilters({...filters, ageRange: [parseInt(e.target.value), filters.ageRange[1]]})}
-                  className="flex-1"
+                  style={{
+                    flex: 1,
+                    accentColor: '#8B4513'
+                  }}
                 />
-                <span className="min-w-12 text-card-foreground text-xs">{filters.ageRange[0]}-{filters.ageRange[1]}</span>
+                <span style={{
+                  minWidth: '40px',
+                  color: '#8B4513',
+                  fontSize: '12px',
+                  fontWeight: '500'
+                }}>
+                  {filters.ageRange[0]}-{filters.ageRange[1]}
+                </span>
               </div>
-              <input 
-                type="range" 
-                min="18" 
-                max="70" 
-                value={filters.ageRange[1]} 
-                onChange={(e) => setFilters({...filters, ageRange: [filters.ageRange[0], parseInt(e.target.value)]})}
-                className="w-full mt-2"
-              />
             </div>
             
             <div>
-              <label className="block mb-1.5 font-bold text-card-foreground text-xs">Gender</label>
+              <label style={{
+                display: 'block',
+                marginBottom: '6px',
+                fontWeight: '500',
+                color: '#8B4513',
+                fontSize: '13px'
+              }}>
+                Gender
+              </label>
               <select 
                 value={filters.gender} 
                 onChange={(e) => setFilters({...filters, gender: e.target.value})}
-                className="w-full bg-background border-2 border-border rounded-lg px-3 py-2 text-card-foreground focus:border-primary focus:outline-none transition-all duration-300"
+                style={{
+                  width: '100%',
+                  background: '#F5F1E8',
+                  border: '1px solid #8B4513',
+                  borderRadius: '6px',
+                  padding: '6px 10px',
+                  color: '#8B4513',
+                  fontSize: '13px',
+                  outline: 'none'
+                }}
               >
                 <option value="">All genders</option>
                 <option value="male">Male</option>
@@ -842,11 +1214,28 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
             </div>
 
             <div>
-              <label className="block mb-1.5 font-bold text-card-foreground text-xs">Relationship Status</label>
+              <label style={{
+                display: 'block',
+                marginBottom: '6px',
+                fontWeight: '500',
+                color: '#8B4513',
+                fontSize: '13px'
+              }}>
+                Relationship Status
+              </label>
               <select 
                 value={filters.relationshipStatus} 
                 onChange={(e) => setFilters({...filters, relationshipStatus: e.target.value})}
-                className="w-full bg-background border-2 border-border rounded-lg px-3 py-2 text-card-foreground focus:border-primary focus:outline-none transition-all duration-300"
+                style={{
+                  width: '100%',
+                  background: '#F5F1E8',
+                  border: '1px solid #8B4513',
+                  borderRadius: '6px',
+                  padding: '6px 10px',
+                  color: '#8B4513',
+                  fontSize: '13px',
+                  outline: 'none'
+                }}
               >
                 <option value="">All statuses</option>
                 <option value="single">Single</option>
@@ -858,118 +1247,378 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
             </div>
 
             <div>
-              <label className="block mb-1.5 font-bold text-card-foreground text-xs">Location</label>
+              <label style={{
+                display: 'block',
+                marginBottom: '6px',
+                fontWeight: '500',
+                color: '#8B4513',
+                fontSize: '13px'
+              }}>
+                Location
+              </label>
               <input 
                 type="text" 
                 placeholder="Enter location..."
                 value={filters.location} 
                 onChange={(e) => setFilters({...filters, location: e.target.value})}
-                className="w-full bg-background border-2 border-border rounded-lg px-3 py-2 text-card-foreground placeholder-muted-foreground focus:border-primary focus:outline-none transition-all duration-300"
+                style={{
+                  width: '100%',
+                  background: '#F5F1E8',
+                  border: '1px solid #8B4513',
+                  borderRadius: '6px',
+                  padding: '6px 10px',
+                  color: '#8B4513',
+                  fontSize: '13px',
+                  outline: 'none'
+                }}
               />
             </div>
+          </div>
+          
+          {/* Clear Filters Button */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            marginTop: '16px'
+          }}>
+            <button
+              onClick={() => setFilters({
+                ageRange: [18, 50],
+                gender: '',
+                relationshipStatus: '',
+                location: ''
+              })}
+              style={{
+                background: '#8B4513',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '8px 16px',
+                fontSize: '13px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#6B3410'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#8B4513'
+              }}
+            >
+              Clear All Filters
+            </button>
           </div>
         </div>
       )}
 
-      {/* Single Profile Display */}
-      <div className="max-w-md mx-auto relative">
+      {/* Show no profiles message if no matches */}
+      {filteredFeed.length === 0 ? (
+        <div className="text-center py-10">
+          <div className="text-5xl mb-4">💔</div>
+          <h3 className="m-0 mb-2 text-card-foreground font-heading text-xl font-bold">
+            {feed.length === 0 ? 'No profiles available' : 'No profiles match your filters'}
+          </h3>
+          <p className="text-muted-foreground m-0">
+            {feed.length === 0 ? 'Check back later for new profiles!' : 'Try adjusting your filter settings'}
+          </p>
+        </div>
+      ) : !currentProfile ? (
+        <div className="text-center py-10">
+          <div className="text-5xl mb-4">💔</div>
+          <h3 className="m-0 mb-2 text-card-foreground font-heading text-xl font-bold">
+            No profile available
+          </h3>
+          <p className="text-muted-foreground m-0">
+            Please try adjusting your filter settings
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* Single Profile Display */}
+          {currentProfile ? (
+        <div className="max-w-md mx-auto relative">
         <div 
-          className={`bg-card rounded-3xl p-8 shadow-2xl transition-all duration-300 cursor-pointer min-h-[600px] flex flex-col ${
+          className={`bg-card rounded-3xl shadow-2xl transition-all duration-300 cursor-pointer flex flex-col responsive-dating-card ${
             isAnimating ? 'scale-95' : 'scale-100'
           }`}
+          style={{
+            background: '#F5F1E8',
+            border: '1px solid #8B4513',
+            padding: '32px',
+            minHeight: '600px',
+            borderRadius: '24px'
+          }}
           onClick={() => onViewProfile(currentProfile)}
         >
           {/* Profile Header */}
-          <div className="flex items-center gap-4 mb-8">
-            <div style={{
+          <div className="flex items-center gap-4 mb-8" style={{
+            gap: '16px',
+            marginBottom: '32px'
+          }}>
+            <div className="avatar" style={{
               width: '80px',
               height: '80px',
               borderRadius: '50%',
-              background: '#F7CAC9',
+              background: '#107980',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: 'black',
+              color: 'white',
               fontSize: '32px',
               fontWeight: '900',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+              boxShadow: '0 4px 12px rgba(16, 121, 128, 0.2)'
             }}>
-              {currentProfile.name?.charAt(0).toUpperCase() || 'U'}
+              {currentProfile?.name?.charAt(0).toUpperCase() || 'U'}
             </div>
             <div className="flex-1">
-              <h2 className="m-0 mb-2 font-heading text-2xl font-black text-card-foreground">
-                {currentProfile.name}
+              <h2 className="m-0 mb-2 font-heading font-black text-card-foreground name" style={{
+                fontSize: '24px',
+                marginBottom: '8px',
+                color: '#000000'
+              }}>
+                {currentProfile?.name || 'Unknown'}
+                {(() => {
+                  const age = calculateAge(currentProfile?.date_of_birth, currentProfile?.age);
+                  // Show age if it's available, or show "Age not available" if it's 0
+                  return (
+                    <span style={{ color: '#000000', fontWeight: '600', fontSize: '17px' }}>
+                      {age > 0 ? `, ${age}` : ', Age not available'}
+                    </span>
+                  );
+                })()}
               </h2>
-              <div className="flex items-center gap-4 text-muted-foreground text-sm font-sans">
-                <span>{currentProfile.gender}</span>
-                <span>{currentProfile.relationship_status}</span>
-                {currentProfile.location && (
-                  <span>{currentProfile.location}</span>
+              <div className="flex items-center text-muted-foreground font-sans details" style={{
+                gap: '12px',
+                fontSize: '14px',
+                color: '#000000'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  background: '#EDE8D0',
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                  color: '#8B4513'
+                }}>
+                  {getGenderIcon(currentProfile?.gender)}
+                  <span>{currentProfile?.gender || 'Unknown'}</span>
+                </div>
+                
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  background: '#EDE8D0',
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                  color: '#8B4513'
+                }}>
+                  <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="4"/>
+                  </svg>
+                  <span>{currentProfile?.relationship_status || 'Unknown'}</span>
+                </div>
+                
+                {currentProfile?.location && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    background: '#EDE8D0',
+                    padding: '4px 8px',
+                    borderRadius: '6px',
+                    color: '#8B4513'
+                  }}>
+                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                    </svg>
+                    <span>{currentProfile?.location}</span>
+                  </div>
                 )}
               </div>
             </div>
           </div>
 
           {/* Bio Section */}
-          <div className="mb-8 flex-1">
-            <h3 className="m-0 mb-4 font-heading text-lg font-bold text-card-foreground">
-              About {currentProfile.name}
+          <div className="mb-8 flex-1" style={{
+            marginBottom: '24px'
+          }}>
+            <h3 className="m-0 mb-4 font-heading font-bold text-card-foreground section-title" style={{
+              fontSize: '18px',
+              marginBottom: '12px',
+              color: '#000000'
+            }}>
+              About {currentProfile?.name || 'Unknown'}
             </h3>
-            <div className="leading-relaxed text-card-foreground text-base font-sans">
-              {currentProfile.bio || 'No bio available'}
+            <div className="leading-relaxed text-card-foreground font-sans bio-text" style={{
+              fontSize: '16px',
+              lineHeight: '1.6',
+              fontFamily: 'Roboto, sans-serif',
+              color: '#000000'
+            }}>
+              {currentProfile?.bio || 'No bio available'}
             </div>
           </div>
 
           {/* Interests Section */}
           <div className="flex-1">
-            <h3 className="m-0 mb-4 font-heading text-lg font-bold text-card-foreground">
+            <h3 className="m-0 mb-4 font-heading font-bold text-card-foreground section-title" style={{
+              fontSize: '18px',
+              marginBottom: '20px',
+              color: '#000000'
+            }}>
               Interests
             </h3>
-            <div className="space-y-4">
-              {currentProfile.interest_1 && (
-                <div>
-                  <div className="mb-2">
-                    <span className="bg-primary text-primary-foreground px-4 py-2 rounded-xl text-sm font-bold inline-block">
-                      {currentProfile.interest_1}
-                    </span>
-                  </div>
-                  <p className="m-0 text-card-foreground leading-relaxed text-sm font-sans">
-                    {currentProfile.interest_1_desc || 'No description available'}
-                  </p>
-                </div>
-              )}
+            <div style={{
+              position: 'relative',
+              height: '300px',
+              overflow: 'hidden'
+            }}>
+              {/* Interest Bubble 1 */}
+              <div style={{
+                position: 'absolute',
+                top: '40px',
+                left: '24px',
+                width: '75px',
+                height: '75px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #3dd1db 0%, #1a9ba3 30%, #0f6b73 70%, #0a4d54 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontSize: '11px',
+                fontWeight: '600',
+                textAlign: 'center',
+                padding: '6px',
+                boxShadow: '0 4px 12px rgba(26, 155, 163, 0.3)',
+                animation: 'float 4s ease-in-out infinite'
+              }}>
+                {currentProfile?.interest_1 || 'Reading'}
+              </div>
 
-              {currentProfile.interest_2 && (
-                <div>
-                  <div className="mb-2">
-                    <span className="bg-primary text-primary-foreground px-4 py-2 rounded-xl text-sm font-bold inline-block">
-                      {currentProfile.interest_2}
-                    </span>
-                  </div>
-                  <p className="m-0 text-card-foreground leading-relaxed text-sm font-sans">
-                    {currentProfile.interest_2_desc || 'No description available'}
-                  </p>
-                </div>
-              )}
+              {/* Interest Bubble 2 */}
+              <div style={{
+                position: 'absolute',
+                top: '30px',
+                left: '140px',
+                width: '70px',
+                height: '70px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #3dd1db 0%, #1a9ba3 30%, #0f6b73 70%, #0a4d54 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontSize: '10px',
+                fontWeight: '600',
+                textAlign: 'center',
+                padding: '6px',
+                boxShadow: '0 4px 12px rgba(26, 155, 163, 0.3)',
+                animation: 'float 8s ease-in-out infinite 1s'
+              }}>
+                {currentProfile?.interest_2 || 'Travel'}
+              </div>
 
-              {currentProfile.interest_3 && (
-                <div>
-                  <div className="mb-2">
-                    <span className="bg-primary text-primary-foreground px-4 py-2 rounded-xl text-sm font-bold inline-block">
-                      {currentProfile.interest_3}
-                    </span>
-                  </div>
-                  <p className="m-0 text-card-foreground leading-relaxed text-sm font-sans">
-                    {currentProfile.interest_3_desc || 'No description available'}
-                  </p>
-                </div>
-              )}
+              {/* Interest Bubble 3 */}
+              <div style={{
+                position: 'absolute',
+                top: '50px',
+                left: '230px',
+                width: '75px',
+                height: '75px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #3dd1db 0%, #1a9ba3 30%, #0f6b73 70%, #0a4d54 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontSize: '11px',
+                fontWeight: '600',
+                textAlign: 'center',
+                padding: '6px',
+                boxShadow: '0 4px 12px rgba(26, 155, 163, 0.3)',
+                animation: 'float 7s ease-in-out infinite 2s'
+              }}>
+                {currentProfile?.interest_3 || 'Music'}
+              </div>
+
+              {/* Interest Bubble 4 - Additional */}
+              <div style={{
+                position: 'absolute',
+                top: '130px',
+                left: '80px',
+                width: '65px',
+                height: '65px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #3dd1db 0%, #1a9ba3 30%, #0f6b73 70%, #0a4d54 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontSize: '10px',
+                fontWeight: '600',
+                textAlign: 'center',
+                padding: '5px',
+                boxShadow: '0 4px 12px rgba(26, 155, 163, 0.3)',
+                animation: 'float 9s ease-in-out infinite 0.5s'
+              }}>
+                Cooking
+              </div>
+
+              {/* Interest Bubble 5 - Additional */}
+              <div style={{
+                position: 'absolute',
+                top: '120px',
+                left: '160px',
+                width: '70px',
+                height: '70px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #3dd1db 0%, #1a9ba3 30%, #0f6b73 70%, #0a4d54 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontSize: '10px',
+                fontWeight: '600',
+                textAlign: 'center',
+                padding: '6px',
+                boxShadow: '0 4px 12px rgba(26, 155, 163, 0.3)',
+                animation: 'float 6.5s ease-in-out infinite 1.5s'
+              }}>
+                Photography
+              </div>
+
+              {/* Interest Bubble 6 - Additional */}
+              <div style={{
+                position: 'absolute',
+                top: '140px',
+                left: '250px',
+                width: '65px',
+                height: '65px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #3dd1db 0%, #1a9ba3 30%, #0f6b73 70%, #0a4d54 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontSize: '10px',
+                fontWeight: '600',
+                textAlign: 'center',
+                padding: '5px',
+                boxShadow: '0 4px 12px rgba(26, 155, 163, 0.3)',
+                animation: 'float 7.5s ease-in-out infinite 0.8s'
+              }}>
+                Gaming
+              </div>
             </div>
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div style={{
+        <div className="responsive-actions" style={{
           display: 'flex',
           justifyContent: 'center',
           gap: '24px',
@@ -982,9 +1631,9 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
               width: '64px',
               height: '64px',
               borderRadius: '50%',
-              border: '2px solid #dc2626',
+              border: '2px solid #8B4513',
               background: 'transparent',
-              color: '#dc2626',
+              color: '#8B4513',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -995,12 +1644,12 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
             onClick={handleSkip}
             disabled={isAnimating}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#dc2626'
+              e.currentTarget.style.background = '#8B4513'
               e.currentTarget.style.color = 'white'
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = 'transparent'
-              e.currentTarget.style.color = '#dc2626'
+              e.currentTarget.style.color = '#8B4513'
             }}
           >
             <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
@@ -1013,23 +1662,25 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
               width: '64px',
               height: '64px',
               borderRadius: '50%',
-              background: '#FDD8D6',
-              color: 'black',
+              background: 'white',
+              color: '#107980',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
               transition: 'all 0.3s ease',
               opacity: isAnimating ? 0.5 : 1,
-              border: 'none'
+              border: '2px solid #107980'
             }}
             onClick={handleMatch}
             disabled={isAnimating}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#F7CAC9'
+              e.currentTarget.style.background = '#107980'
+              e.currentTarget.style.color = 'white'
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = '#FDD8D6'
+              e.currentTarget.style.background = 'white'
+              e.currentTarget.style.color = '#107980'
             }}
           >
             <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
@@ -1038,48 +1689,30 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
           </button>
         </div>
       </div>
+      ) : (
+        <div className="text-center py-10">
+          <div className="text-5xl mb-4">💔</div>
+          <h3 className="m-0 mb-2 text-card-foreground font-heading text-xl font-bold">
+            No profile available
+          </h3>
+          <p className="text-muted-foreground m-0">
+            Please try adjusting your filter settings
+          </p>
+        </div>
+      )}
 
       {/* Message Prompt Modal */}
       {showMessagePrompt && (
-        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
-          <div className="bg-card rounded-2xl p-8 max-w-lg w-full text-center shadow-xl">
-            <h3 className="m-0 mb-4 font-heading text-xl font-bold text-card-foreground">
-              💌 Send a message to {currentProfile.name}
-            </h3>
-            <p className="m-0 mb-5 text-muted-foreground text-sm">
-              Write a short message to introduce yourself (max 200 characters)
-            </p>
-            <textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Hi! I'd love to get to know you better..."
-              className="w-full min-h-24 resize-vertical mb-5 bg-background border-2 border-border rounded-lg px-3 py-2 text-card-foreground placeholder-muted-foreground focus:border-primary focus:outline-none transition-all duration-300"
-              maxLength={200}
-            />
-            <div className="text-xs text-muted-foreground mb-5">
-              {message.length}/200 characters
-            </div>
-            <div className="flex gap-3">
-              <button
-                className="flex-1 bg-background border-2 border-border text-card-foreground font-bold px-5 py-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
-                onClick={handleCancelMessage}
-              >
-                Cancel
-              </button>
-              <button
-                className={`flex-1 font-bold px-5 py-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 ${
-                  !message.trim() 
-                    ? 'bg-muted text-muted-foreground cursor-not-allowed' 
-                    : 'bg-gradient-to-br from-primary to-secondary text-primary-foreground'
-                }`}
-                onClick={handleSendMessage}
-                disabled={!message.trim()}
-              >
-                Send Request
-              </button>
-            </div>
-          </div>
-        </div>
+        <AnimatedMessagePopup 
+          isVisible={showMessagePrompt} 
+          onClose={handleCancelMessage} 
+          onSend={handleSendMessage} 
+          profileName={currentProfile?.name || 'Unknown'} 
+          message={message} 
+          setMessage={setMessage} 
+        />
+      )}
+        </>
       )}
     </div>
   )
@@ -1168,98 +1801,153 @@ function MatchesSection({ matches, onRefresh, onChatClick, onViewProfile }: {
 }) {
   return (
     <div>
-          {matches.length === 0 ? (
-        <div style={{textAlign: 'center', padding: 20}}>
-          <div style={{fontSize: 32, marginBottom: 12}}>💔</div>
-          <h3 style={{margin: '0 0 6px 0', color: '#212529', fontSize: '16px'}}>No matches yet</h3>
-          <p style={{color: '#6c757d', margin: 0, fontSize: '12px'}}>Start sending requests to find your perfect match!</p>
-            </div>
-          ) : (
-        <div style={{display: 'grid', gap: 12}}>
+      {matches.length === 0 ? (
+        <div className="responsive-empty" style={{
+          textAlign: 'center', 
+          padding: '40px 20px',
+          background: '#F5F1E8',
+          borderRadius: '16px',
+          border: '1px solid #107980',
+          margin: '20px 0'
+        }}>
+          <svg width="48" height="48" fill="#107980" viewBox="0 0 24 24" style={{marginBottom: 16}}>
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+          </svg>
+          <h3 style={{
+            margin: '0 0 8px 0', 
+            color: '#000000', 
+            fontSize: '18px', 
+            fontWeight: 600
+          }}>No matches yet</h3>
+          <p style={{
+            color: '#000000', 
+            margin: 0, 
+            fontSize: '14px', 
+            opacity: 0.8
+          }}>Start sending requests to find your perfect match!</p>
+        </div>
+      ) : (
+        <div className="responsive-matches" style={{display: 'grid', gap: '12px'}}>
           {matches.map(m => (
-              <div key={m.id} style={{padding: '12px', borderBottom: '1px solid #f0f0f0'}}>
-              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12}}>
-                  <div style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: '50%',
-                    background: '#FDD8D6',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#8B4513',
-                    fontSize: '16px',
-                    fontWeight: '900',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+            <div key={m.id} className="match-item" style={{
+              padding: '16px',
+              background: '#F5F1E8',
+              borderBottom: '1px solid #107980',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#EDE8D0'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#F5F1E8'
+            }}>
+              <div style={{
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center', 
+                gap: '16px'
+              }}>
+                <div className="match-avatar" style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '50%',
+                  background: '#107980',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  fontSize: '16px',
+                  fontWeight: 'bold',
+                  boxShadow: '0 2px 8px rgba(16, 121, 128, 0.2)'
+                }}>
+                  {m.name.split(' ').map(word => word.charAt(0)).join('').toUpperCase().slice(0, 2) || '?'}
+                </div>
+                <div style={{flex: 1}}>
+                  <h4 className="match-name" style={{
+                    margin: '0 0 6px 0', 
+                    fontSize: 16, 
+                    fontWeight: 700, 
+                    color: '#000000'
                   }}>
-                    {m.name.split(' ').map(word => word.charAt(0)).join('').toUpperCase().slice(0, 2) || '?'}
+                    {m.name || 'Match'}
+                  </h4>
+                  <div className="match-details" style={{
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 12, 
+                    fontSize: '13px', 
+                    color: '#000000', 
+                    opacity: 0.8
+                  }}>
+                    {m.location && (
+                      <span className="match-tag" style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        background: '#EDE8D0',
+                        padding: '4px 8px',
+                        borderRadius: '8px',
+                        fontSize: '12px'
+                      }}>
+                        <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                        </svg>
+                        {m.location}
+                      </span>
+                    )}
+                    {m.instagram_handle && (
+                      <span className="match-tag" style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        background: '#EDE8D0',
+                        padding: '4px 8px',
+                        borderRadius: '8px',
+                        fontSize: '12px'
+                      }}>
+                        <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                        </svg>
+                        @{m.instagram_handle}
+                      </span>
+                    )}
                   </div>
-                  <div style={{flex: 1}}>
-                    <h4 style={{margin: '0 0 4px 0', fontSize: 16, fontWeight: 700, color: '#8B4513'}}>
-                      {m.name || 'Match'}
-                    </h4>
-                    <div style={{display: 'flex', alignItems: 'center', gap: 8, fontSize: '12px', color: '#8B4513'}}>
-                      {m.location && (
-                        <span style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px'
-                        }}>
-                          <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-                          </svg>
-                          {m.location}
-                        </span>
-                      )}
-                      {m.location && m.instagram_handle && (
-                        <span style={{color: '#8B4513'}}>•</span>
-                      )}
-                      {m.instagram_handle && (
-                        <span style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px'
-                        }}>
-                          <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
-                          </svg>
-                          Instagram: @{m.instagram_handle}
-                        </span>
-                      )}
-                    </div>
-                  </div>
+                </div>
                 <button 
+                  className="view-profile-btn"
                   style={{
-                    background: '#8B4513',
+                    background: '#107980',
                     color: 'white',
                     border: 'none',
-                    borderRadius: '20px',
-                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
                     fontSize: '12px',
                     fontWeight: 600,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '6px',
-                    transition: 'all 0.2s ease'
+                    transition: 'all 0.2s ease',
+                    minWidth: '120px',
+                    justifyContent: 'center'
                   }}
                   onClick={() => {
                     onViewProfile(m)
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#A0522D'
+                    e.currentTarget.style.background = '#0d6b71'
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = '#8B4513'
+                    e.currentTarget.style.background = '#107980'
                   }}
                 >
-                  <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
+                  <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24" style={{flexShrink: 0}}>
                     <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
                   </svg>
-                  View Profile
+                  <span style={{whiteSpace: 'nowrap'}}>View Profile</span>
                 </button>
-                </div>
               </div>
+            </div>
           ))}
         </div>
       )}
@@ -1276,13 +1964,22 @@ function RequestsSection({ incoming, onAccepted, userId }: {
   return (
     <div>
           {incoming.length === 0 ? (
-        <div style={{textAlign: 'center', padding: 20}}>
-          <div style={{fontSize: 32, marginBottom: 12}}>📭</div>
-          <h3 style={{margin: '0 0 6px 0', color: '#212529', fontSize: '16px'}}>No pending requests</h3>
-          <p style={{color: '#6c757d', margin: 0, fontSize: '12px'}}>When someone sends you a request, it will appear here.</p>
-            </div>
+        <div className="responsive-empty" style={{
+          textAlign: 'center', 
+          padding: '40px 20px',
+          background: '#F5F1E8',
+          borderRadius: '16px',
+          border: '1px solid #107980',
+          margin: '20px 0'
+        }}>
+          <svg width="48" height="48" fill="#107980" viewBox="0 0 24 24" style={{marginBottom: 16}}>
+            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+          </svg>
+          <h3 style={{margin: '0 0 8px 0', color: '#000000', fontSize: '18px', fontWeight: 600}}>No pending requests</h3>
+          <p style={{color: '#000000', margin: 0, fontSize: '14px', opacity: 0.8}}>When someone sends you a request, it will appear here.</p>
+        </div>
           ) : (
-        <div style={{display: 'grid', gap: 12}}>
+        <div className="responsive-matches" style={{display: 'grid', gap: 12}}>
           {incoming.map(r => (
               <RequestRow key={r.id} item={r} me={userId} onAccepted={() => onAccepted(r.id)} />
           ))}
@@ -1898,7 +2595,7 @@ function ChatSection({ matches, userId, selectedChatUser, setSelectedChatUser }:
         display: 'flex', 
         flexDirection: 'column',
         height: 'calc(100vh - 80px)', // Full viewport height minus header
-        background: '#f0f2f5',
+        background: '#F5F1E8',
         position: 'fixed',
         top: '80px', // Start below the main header
         left: '0',
@@ -1908,9 +2605,9 @@ function ChatSection({ matches, userId, selectedChatUser, setSelectedChatUser }:
       }}>
         {/* Chat Header */}
         <div style={{
-          background: 'white',
+          background: '#EDE8D0',
           padding: '12px 16px',
-          borderBottom: '1px solid #e9ecef',
+          borderBottom: '1px solid #107980',
           display: 'flex',
           alignItems: 'center',
           gap: 12,
@@ -1922,7 +2619,7 @@ function ChatSection({ matches, userId, selectedChatUser, setSelectedChatUser }:
             width: 32,
             height: 32,
             borderRadius: '50%',
-            background: 'linear-gradient(135deg, #ff6b6b, #ee5a52)',
+            background: '#107980',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -1930,11 +2627,13 @@ function ChatSection({ matches, userId, selectedChatUser, setSelectedChatUser }:
             fontSize: '14px',
             fontWeight: 'bold'
           }}>
-            💬
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
+            </svg>
           </div>
           <div>
-            <h3 style={{margin: 0, fontSize: 16, fontWeight: 600, color: '#212529'}}>Chats</h3>
-            <p style={{margin: '2px 0 0 0', color: '#6c757d', fontSize: '12px'}}>
+            <h3 style={{margin: 0, fontSize: 16, fontWeight: 600, color: '#8B4513'}}>Chats</h3>
+            <p style={{margin: '2px 0 0 0', color: '#8B4513', fontSize: '12px', opacity: 0.8}}>
               {matches.length} {matches.length === 1 ? 'match' : 'matches'}
             </p>
           </div>
@@ -1943,129 +2642,143 @@ function ChatSection({ matches, userId, selectedChatUser, setSelectedChatUser }:
         {/* Chat List */}
         <div style={{flex: 1, overflow: 'auto'}}>
           {matches.length === 0 ? (
-            <div style={{
+            <div className="responsive-empty" style={{
               textAlign: 'center', 
-              color: '#6c757d', 
+              color: '#8B4513', 
               padding: '40px 20px',
               display: 'flex', 
               alignItems: 'center', 
               justifyContent: 'center',
-              flexDirection: 'column'
+              flexDirection: 'column',
+              background: '#F5F1E8',
+              borderRadius: '16px',
+              border: '1px solid #107980',
+              margin: '20px'
             }}>
-              <svg width="48" height="48" fill="#8B4513" viewBox="0 0 24 24" style={{marginBottom: 16, opacity: 0.6}}>
+              <svg width="48" height="48" fill="#107980" viewBox="0 0 24 24" style={{marginBottom: 16}}>
                 <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
               </svg>
-              <div style={{fontSize: '16px', fontWeight: 600, color: '#8B4513'}}>No matches yet</div>
-              <div style={{fontSize: '14px', marginTop: 4, opacity: 0.7, color: '#8B4513'}}>Start matching to begin chatting!</div>
+              <div style={{fontSize: '18px', fontWeight: 600, color: '#000000'}}>No matches yet</div>
+              <div style={{fontSize: '14px', marginTop: 4, opacity: 0.8, color: '#000000'}}>Start matching to begin chatting!</div>
             </div>
           ) : (
-            <div style={{padding: '8px'}}>
+            <div className="responsive-matches" style={{padding: '8px'}}>
               {matches.map(match => (
                 <div 
                   key={match.id}
+                  className="match-item"
                   onClick={() => setSelectedChatUser(match.other_user_id)}
                   style={{
-                    background: 'white',
-                    padding: '12px 16px',
+                    background: '#F5F1E8',
+                    padding: '16px',
                     marginBottom: '8px',
                     borderRadius: '12px',
                     cursor: 'pointer',
                     transition: 'all 0.2s ease',
-                    border: '1px solid #e9ecef',
+                    border: '1px solid #107980',
                     display: 'flex',
                     alignItems: 'center',
                     gap: 12
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-1px)'
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'
+                    e.currentTarget.style.background = '#EDE8D0'
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)'
-                    e.currentTarget.style.boxShadow = 'none'
+                    e.currentTarget.style.background = '#F5F1E8'
                   }}
                 >
-                  <div style={{
+                  <div className="match-avatar" style={{
                     width: 40,
                     height: 40,
                     borderRadius: '50%',
-                    background: '#FDD8D6',
+                    background: '#107980',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: '#8B4513',
+                    color: 'white',
                     fontSize: '16px',
-                    fontWeight: '900',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                    fontWeight: 'bold',
+                    boxShadow: '0 2px 8px rgba(16, 121, 128, 0.2)'
                   }}>
-                    {match.bio.charAt(0).toUpperCase() || '?'}
+                    {match.name?.charAt(0).toUpperCase() || '?'}
                   </div>
                   <div style={{flex: 1}}>
-                    <h4 style={{
+                    <h4 className="match-name" style={{
                       margin: '0 0 4px 0',
                       fontSize: 16,
                       fontWeight: 700,
-                      color: '#8B4513'
+                      color: '#000000'
                     }}>
-                      Your Match
+                      {match.name || 'Your Match'}
                     </h4>
-                    <div style={{
+                    <div className="match-details" style={{
                       display: 'flex',
                       alignItems: 'center',
                       gap: 8,
                       fontSize: '12px',
-                      color: '#8B4513'
+                      color: '#000000',
+                      opacity: 0.8
                     }}>
                       {match.location && (
-                        <span style={{
+                        <span className="match-tag" style={{
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '4px'
+                          gap: '4px',
+                          background: '#EDE8D0',
+                          padding: '2px 6px',
+                          borderRadius: '6px',
+                          fontSize: '10px'
                         }}>
-                          <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24">
+                          <svg width="10" height="10" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
                           </svg>
                           {match.location}
                         </span>
                       )}
                       {match.location && match.instagram_handle && (
-                        <span style={{color: '#8B4513'}}>•</span>
+                        <span style={{color: '#000000', opacity: 0.6}}>•</span>
                       )}
                       {match.instagram_handle && (
-                        <span style={{
+                        <span className="match-tag" style={{
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '4px'
+                          gap: '4px',
+                          background: '#EDE8D0',
+                          padding: '2px 6px',
+                          borderRadius: '6px',
+                          fontSize: '10px'
                         }}>
-                          <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24">
+                          <svg width="10" height="10" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
                           </svg>
-                          Instagram: @{match.instagram_handle}
+                          @{match.instagram_handle}
                         </span>
                       )}
                     </div>
                   </div>
                   <button
+                    className="view-profile-btn"
                     onClick={() => setSelectedChatUser(match.other_user_id)}
                     style={{
-                      background: '#8B4513',
+                      background: '#107980',
                       color: 'white',
                       border: 'none',
-                      borderRadius: '20px',
-                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      padding: '8px 12px',
                       fontSize: '12px',
                       fontWeight: 600,
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
+                      justifyContent: 'center',
                       gap: '6px',
                       transition: 'all 0.2s ease'
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.background = '#A0522D'
+                      e.currentTarget.style.background = '#0d6b71'
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.background = '#8B4513'
+                      e.currentTarget.style.background = '#107980'
                     }}
                   >
                     <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
@@ -2171,56 +2884,97 @@ function RequestRow({item,me,onAccepted}:{item:{id:string;from_user_id:string;me
   }
   
   return (
-    <div style={{padding: '12px', borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+    <div className="match-item" style={{
+      padding: '16px', 
+      background: '#F5F1E8',
+      borderBottom: '1px solid #107980', 
+      display: 'flex', 
+      justifyContent: 'space-between', 
+      alignItems: 'center',
+      transition: 'all 0.2s ease'
+    }}
+    onMouseEnter={(e) => {
+      e.currentTarget.style.background = '#EDE8D0'
+    }}
+    onMouseLeave={(e) => {
+      e.currentTarget.style.background = '#F5F1E8'
+    }}>
       <div style={{flex: 1}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6}}>
-          <div style={{
-            width: 32,
-            height: 32,
+        <div style={{display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8}}>
+          <div className="match-avatar" style={{
+            width: 40,
+            height: 40,
             borderRadius: '50%',
-            background: 'linear-gradient(135deg, #ff6b6b, #ee5a52)',
+            background: '#107980',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             color: 'white',
-            fontSize: '14px',
-            fontWeight: 'bold'
+            fontSize: '16px',
+            fontWeight: 'bold',
+            boxShadow: '0 2px 8px rgba(16, 121, 128, 0.2)'
           }}>
             {item.name?.charAt(0).toUpperCase() || item.from_user_id.charAt(0).toUpperCase()}
           </div>
         <div>
-            <div style={{fontWeight: 600, color: '#212529', fontSize: '14px'}}>
+            <div className="match-name" style={{fontWeight: 600, color: '#000000', fontSize: '16px', marginBottom: '4px'}}>
               {item.name || `User ${item.from_user_id.slice(0,8)}…`}
         </div>
-            <div style={{color: '#6c757d', fontSize: '11px'}}>
+            <div style={{color: '#000000', fontSize: '12px', opacity: 0.7}}>
               {new Date(item.created_at).toLocaleDateString()}
       </div>
           </div>
         </div>
-        <div style={{color: '#6c757d', lineHeight: 1.4, marginBottom: 8, fontSize: '12px'}}>
+        <div style={{color: '#000000', lineHeight: 1.4, marginBottom: 8, fontSize: '13px', opacity: 0.8}}>
           "{item.message || 'No message'}"
         </div>
         {item.bio && (
-          <div style={{color: '#212529', fontSize: '12px', lineHeight: 1.4}}>
+          <div style={{color: '#000000', fontSize: '12px', lineHeight: 1.4, marginBottom: '6px'}}>
             {item.bio.length > 80 ? item.bio.substring(0, 80) + '...' : item.bio}
           </div>
         )}
         {item.location && (
-          <div style={{color: '#6c757d', fontSize: '11px', marginTop: '4px'}}>
-            📍 {item.location}
+          <div className="match-tag" style={{
+            color: '#000000', 
+            fontSize: '11px', 
+            marginTop: '4px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+            background: '#EDE8D0',
+            padding: '2px 6px',
+            borderRadius: '6px'
+          }}>
+            <svg width="10" height="10" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+            </svg>
+            {item.location}
           </div>
         )}
       </div>
       <button 
+        className="view-profile-btn"
         style={{
-          ...btnPrimary,
-          minWidth: '60px',
-          padding: '6px 10px',
-          fontSize: '11px',
+          background: '#107980',
+          color: 'white',
+          border: 'none',
+          borderRadius: '8px',
+          minWidth: '80px',
+          padding: '8px 12px',
+          fontSize: '12px',
+          fontWeight: 600,
+          cursor: 'pointer',
+          transition: 'all 0.2s ease',
           opacity: isAccepting ? 0.7 : 1
         }} 
         onClick={accept}
         disabled={isAccepting}
+        onMouseEnter={(e) => {
+          if (!isAccepting) e.currentTarget.style.background = '#0d6b71'
+        }}
+        onMouseLeave={(e) => {
+          if (!isAccepting) e.currentTarget.style.background = '#107980'
+        }}
       >
         {isAccepting ? 'Accepting...' : 'Accept'}
       </button>
@@ -2231,78 +2985,134 @@ function RequestRow({item,me,onAccepted}:{item:{id:string;from_user_id:string;me
 function ProfileDisplay({ me }: { me: any }) {
   if (!me) {
     return (
-      <div style={{textAlign: 'center', padding: 40}}>
-        <div style={{fontSize: 48, marginBottom: 16}}>👤</div>
-        <h3 style={{margin: '0 0 8px 0', color: 'var(--text)'}}>Loading profile...</h3>
+      <div className="responsive-empty" style={{
+        textAlign: 'center', 
+        padding: '40px 20px',
+        background: '#F5F1E8',
+        borderRadius: '16px',
+        border: '1px solid #107980',
+        margin: '20px 0'
+      }}>
+        <svg width="48" height="48" fill="#107980" viewBox="0 0 24 24" style={{marginBottom: 16}}>
+          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+        </svg>
+        <h3 style={{margin: '0 0 8px 0', color: '#000000', fontSize: '18px', fontWeight: 600}}>Loading profile...</h3>
       </div>
     )
   }
   
   return (
-    <div style={{
-      padding: '16px'
+    <div className="responsive-dating-card" style={{
+      padding: '32px',
+      background: '#F5F1E8',
+      borderRadius: '24px',
+      border: '1px solid #107980'
     }}>
       {/* Profile Header */}
-                      <div style={{
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '16px',
+        marginBottom: '32px',
+        paddingBottom: '16px',
+        borderBottom: '1px solid #107980'
+      }}>
+        <div className="avatar" style={{
+          width: 80,
+          height: 80,
+          borderRadius: '50%',
+          background: '#107980',
           display: 'flex',
           alignItems: 'center',
-          gap: '12px',
-          marginBottom: '20px',
-          paddingBottom: '12px',
-          borderBottom: '1px solid #e9ecef'
+          justifyContent: 'center',
+          color: 'white',
+          fontSize: '32px',
+          fontWeight: 'bold',
+          boxShadow: '0 4px 12px rgba(16, 121, 128, 0.2)'
         }}>
+          {me.name?.charAt(0).toUpperCase() || 'U'}
+        </div>
+        <div>
+          <h2 className="name" style={{margin: '0 0 8px 0', fontSize: '24px', fontWeight: 600, color: '#000000'}}>
+            {me.name || 'User'}
+          </h2>
           <div style={{
-            width: '50px',
-            height: '50px',
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, #ff6b6b, #ee5a52)',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-            fontSize: '20px',
-            fontWeight: 'bold'
+            gap: '8px',
+            color: '#000000',
+            fontSize: '12px',
+            opacity: 0.8
           }}>
-            {me.name?.charAt(0).toUpperCase() || 'U'}
-          </div>
-          <div>
-            <h2 style={{margin: '0 0 4px 0', fontSize: '20px', fontWeight: 700, color: '#212529'}}>
-              {me.name || 'User'}
-            </h2>
-            <div style={{
+            <span style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              color: '#6c757d',
-              fontSize: '12px'
+              gap: '4px',
+              background: '#EDE8D0',
+              padding: '2px 6px',
+              borderRadius: '6px'
             }}>
-              <span>👤 {me.gender || 'Not specified'}</span>
-              <span>💕 {me.relationship_status || 'Not specified'}</span>
-              {me.location && (
-                <span>📍 {me.location}</span>
-              )}
-            </div>
+              <svg width="10" height="10" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+              </svg>
+              {me.gender || 'Not specified'}
+            </span>
+            <span style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              background: '#EDE8D0',
+              padding: '2px 6px',
+              borderRadius: '6px'
+            }}>
+              <svg width="10" height="10" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+              </svg>
+              {me.relationship_status || 'Not specified'}
+            </span>
+            {me.location && (
+              <span style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                background: '#EDE8D0',
+                padding: '2px 6px',
+                borderRadius: '6px'
+              }}>
+                <svg width="10" height="10" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                </svg>
+                {me.location}
+              </span>
+            )}
           </div>
         </div>
+      </div>
 
             {/* Bio Section */}
-      <div style={{marginBottom: '20px'}}>
-        <h3 style={{
-          margin: '0 0 8px 0',
-          fontSize: '16px',
+      <div style={{marginBottom: '32px'}}>
+        <h3 className="section-title" style={{
+          margin: '0 0 12px 0',
+          fontSize: '18px',
           fontWeight: 600,
-          color: '#212529',
+          color: '#000000',
           display: 'flex',
           alignItems: 'center',
-          gap: '6px'
+          gap: '8px'
         }}>
-          📝 About Me
+          <svg width="18" height="18" fill="#107980" viewBox="0 0 24 24">
+            <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
+          </svg>
+          About Me
         </h3>
-        <div style={{
-          padding: '12px',
-          lineHeight: '1.5',
-          color: '#212529',
-          fontSize: '14px'
+        <div className="bio-text" style={{
+          padding: '16px',
+          lineHeight: '1.6',
+          color: '#000000',
+          fontSize: '14px',
+          background: '#EDE8D0',
+          borderRadius: '12px',
+          border: '1px solid #107980'
         }}>
           {me.bio || 'No bio available'}
         </div>
@@ -2310,114 +3120,123 @@ function ProfileDisplay({ me }: { me: any }) {
 
             {/* Interests Section */}
       <div>
-        <h3 style={{
-          margin: '0 0 12px 0',
-          fontSize: '16px',
+        <h3 className="section-title" style={{
+          margin: '0 0 16px 0',
+          fontSize: '18px',
           fontWeight: 600,
-          color: '#212529',
+          color: '#000000',
           display: 'flex',
           alignItems: 'center',
-          gap: '6px'
+          gap: '8px'
         }}>
-          ⭐ My Interests
+          <svg width="18" height="18" fill="#107980" viewBox="0 0 24 24">
+            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+          </svg>
+          My Interests
         </h3>
-        <div style={{display: 'grid', gap: '12px'}}>
+        <div style={{display: 'grid', gap: '16px'}}>
           {/* Interest 1 */}
           {me.interest_1 && (
-                            <div style={{
-                  padding: '8px 0',
-                  borderBottom: '1px solid #f0f0f0'
+            <div className="interest-item" style={{
+              padding: '16px',
+              background: '#EDE8D0',
+              borderRadius: '12px',
+              border: '1px solid #107980'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                marginBottom: '8px'
+              }}>
+                <span className="interest-tag" style={{
+                  background: '#107980',
+                  color: 'white',
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  fontWeight: 600
                 }}>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    marginBottom: '6px'
-                  }}>
-                    <span style={{
-                      background: 'linear-gradient(135deg, #ff6b6b, #ee5a52)',
-                      color: 'white',
-                      padding: '4px 8px',
-                      borderRadius: '4px',
-                      fontSize: '10px',
-                      fontWeight: 600
-                    }}>
-                      {me.interest_1}
-                    </span>
-                  </div>
-                  <p style={{
-                    margin: 0,
-                    color: '#212529',
-                    lineHeight: '1.4',
-                    fontSize: '12px'
-                  }}>
-                    {me.interest_1_desc || 'No description available'}
-                  </p>
-                </div>
+                  {me.interest_1}
+                </span>
+              </div>
+              <p className="interest-desc" style={{
+                margin: 0,
+                color: '#000000',
+                lineHeight: '1.5',
+                fontSize: '13px'
+              }}>
+                {me.interest_1_desc || 'No description available'}
+              </p>
+            </div>
           )}
 
           {/* Interest 2 */}
           {me.interest_2 && (
-                            <div style={{
-                  padding: '8px 0',
-                  borderBottom: '1px solid #f0f0f0'
+            <div className="interest-item" style={{
+              padding: '16px',
+              background: '#EDE8D0',
+              borderRadius: '12px',
+              border: '1px solid #107980'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                marginBottom: '8px'
+              }}>
+                <span className="interest-tag" style={{
+                  background: '#107980',
+                  color: 'white',
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  fontWeight: 600
                 }}>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    marginBottom: '6px'
-                  }}>
-                    <span style={{
-                      background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
-                      color: 'white',
-                      padding: '4px 8px',
-                      borderRadius: '4px',
-                      fontSize: '10px',
-                      fontWeight: 600
-                    }}>
-                      {me.interest_2}
-                    </span>
-                  </div>
-                  <p style={{
-                    margin: 0,
-                    color: '#212529',
-                    lineHeight: '1.4',
-                    fontSize: '12px'
-                  }}>
-                    {me.interest_2_desc || 'No description available'}
-                  </p>
-                </div>
+                  {me.interest_2}
+                </span>
+              </div>
+              <p className="interest-desc" style={{
+                margin: 0,
+                color: '#000000',
+                lineHeight: '1.5',
+                fontSize: '13px'
+              }}>
+                {me.interest_2_desc || 'No description available'}
+              </p>
+            </div>
           )}
 
           {/* Interest 3 */}
           {me.interest_3 && (
-                            <div style={{
-                  padding: '8px 0',
-                  borderBottom: '1px solid #f0f0f0'
+            <div className="interest-item" style={{
+              padding: '16px',
+              background: '#EDE8D0',
+              borderRadius: '12px',
+              border: '1px solid #107980'
                 }}>
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    marginBottom: '6px'
+                    marginBottom: '8px'
                   }}>
-                    <span style={{
-                      background: 'linear-gradient(135deg, #10b981, #059669)',
+                    <span className="interest-tag" style={{
+                      background: '#107980',
                       color: 'white',
-                      padding: '4px 8px',
-                      borderRadius: '4px',
-                      fontSize: '10px',
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      fontSize: '12px',
                       fontWeight: 600
                     }}>
                       {me.interest_3}
                     </span>
                   </div>
-                  <p style={{
+                  <p className="interest-desc" style={{
                     margin: 0,
-                    color: '#212529',
-                    lineHeight: '1.4',
-                    fontSize: '12px'
+                    color: '#000000',
+                    lineHeight: '1.5',
+                    fontSize: '13px'
                   }}>
                     {me.interest_3_desc || 'No description available'}
                   </p>
@@ -2426,13 +3245,18 @@ function ProfileDisplay({ me }: { me: any }) {
 
           {/* No interests message */}
           {!me.interest_1 && !me.interest_2 && !me.interest_3 && (
-            <div style={{
-              padding: '20px',
+            <div className="responsive-empty" style={{
+              padding: '32px 20px',
               textAlign: 'center',
-              color: '#6c757d'
+              background: '#EDE8D0',
+              borderRadius: '12px',
+              border: '1px solid #107980',
+              margin: '20px 0'
             }}>
-              <div style={{fontSize: '32px', marginBottom: '12px'}}>⭐</div>
-              <p style={{margin: 0, fontSize: '14px'}}>No interests added yet</p>
+              <svg width="48" height="48" fill="#107980" viewBox="0 0 24 24" style={{marginBottom: 16}}>
+                <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+              </svg>
+              <p style={{margin: 0, fontSize: '16px', color: '#000000', fontWeight: 600}}>No interests added yet</p>
             </div>
           )}
         </div>
@@ -2905,6 +3729,346 @@ const input: React.CSSProperties = {
   flex:1,
   fontSize: '14px',
   width: '100%'
+}
+
+// Animated Message Popup Component with Paper Folding Effect
+function AnimatedMessagePopup({ 
+  isVisible, 
+  onClose, 
+  onSend, 
+  profileName, 
+  message, 
+  setMessage 
+}: {
+  isVisible: boolean;
+  onClose: () => void;
+  onSend: () => void;
+  profileName: string;
+  message: string;
+  setMessage: (message: string) => void;
+}) {
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [foldStage, setFoldStage] = useState(0); // 0: closed, 1: unfolding, 2: open, 3: folding
+
+  useEffect(() => {
+    if (isVisible) {
+      setIsAnimating(true);
+      setFoldStage(1); // Start unfolding
+      const timer = setTimeout(() => {
+        setFoldStage(2); // Fully open
+        setIsAnimating(false);
+      }, 600);
+      return () => clearTimeout(timer);
+    } else {
+      setIsAnimating(true);
+      setFoldStage(3); // Start folding
+      const timer = setTimeout(() => {
+        setFoldStage(0); // Fully closed
+        setIsAnimating(false);
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [isVisible]);
+
+  if (foldStage === 0 && !isVisible) return null;
+
+  const getTransformStyle = () => {
+    switch (foldStage) {
+      case 0: return { transform: 'scale(0) rotateX(90deg)', opacity: 0 };
+      case 1: return { transform: 'scale(0.8) rotateX(45deg)', opacity: 0.8 };
+      case 2: return { transform: 'scale(1) rotateX(0deg)', opacity: 1 };
+      case 3: return { transform: 'scale(0.8) rotateX(-45deg)', opacity: 0.8 };
+      default: return { transform: 'scale(1) rotateX(0deg)', opacity: 1 };
+    }
+  };
+
+  const handleSend = () => {
+    if (!message.trim()) {
+      alert('Please enter a message');
+      return;
+    }
+    onSend();
+  };
+
+  return (
+    <div 
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0, 0, 0, 0.7)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+        padding: '20px',
+        backdropFilter: 'blur(4px)',
+        transition: 'all 0.3s ease'
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !isAnimating) {
+          onClose();
+        }
+      }}
+    >
+      {/* Paper Container with Folding Animation */}
+      <div
+        style={{
+          background: '#F5F1E8',
+          borderRadius: '20px',
+          padding: '32px',
+          maxWidth: '400px',
+          width: '100%',
+          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+          border: '2px solid #8B4513',
+          position: 'relative',
+          transformOrigin: 'center center',
+          transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+          ...getTransformStyle(),
+          perspective: '1000px'
+        }}
+      >
+        {/* Decorative Corner Folds */}
+        <div style={{
+          position: 'absolute',
+          top: '0',
+          left: '0',
+          width: '0',
+          height: '0',
+          borderStyle: 'solid',
+          borderWidth: '0 20px 20px 0',
+          borderColor: 'transparent #8B4513 transparent transparent',
+          borderRadius: '0 0 20px 0'
+        }} />
+        <div style={{
+          position: 'absolute',
+          top: '0',
+          right: '0',
+          width: '0',
+          height: '0',
+          borderStyle: 'solid',
+          borderWidth: '0 0 20px 20px',
+          borderColor: 'transparent transparent #8B4513 transparent',
+          borderRadius: '0 0 0 20px'
+        }} />
+        <div style={{
+          position: 'absolute',
+          bottom: '0',
+          left: '0',
+          width: '0',
+          height: '0',
+          borderStyle: 'solid',
+          borderWidth: '20px 20px 0 0',
+          borderColor: '#8B4513 transparent transparent transparent',
+          borderRadius: '20px 0 0 0'
+        }} />
+        <div style={{
+          position: 'absolute',
+          bottom: '0',
+          right: '0',
+          width: '0',
+          height: '0',
+          borderStyle: 'solid',
+          borderWidth: '20px 0 0 20px',
+          borderColor: 'transparent transparent transparent #8B4513',
+          borderRadius: '0 20px 0 0'
+        }} />
+
+        {/* Header with Heart Icon */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          marginBottom: '20px',
+          justifyContent: 'center'
+        }}>
+          <div style={{
+            width: '24px',
+            height: '24px',
+            background: 'linear-gradient(135deg, #FF6B9D, #FF8EAB)',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            animation: 'pulse 2s infinite'
+          }}>
+            <svg width="12" height="12" fill="white" viewBox="0 0 24 24">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+          </div>
+          <h3 style={{
+            margin: 0,
+            fontSize: '20px',
+            fontWeight: '700',
+            color: '#8B4513',
+            textAlign: 'center'
+          }}>
+            Send a message to {profileName}
+          </h3>
+        </div>
+
+        {/* Instructions */}
+        <p style={{
+          margin: '0 0 20px 0',
+          fontSize: '14px',
+          color: '#8B4513',
+          textAlign: 'center',
+          lineHeight: '1.5'
+        }}>
+          Write a short message to introduce yourself (max 200 characters)
+        </p>
+
+        {/* Message Input */}
+        <div style={{
+          position: 'relative',
+          marginBottom: '20px'
+        }}>
+          <textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Hi! I'd love to get to know you better..."
+            style={{
+              width: '100%',
+              minHeight: '100px',
+              padding: '16px',
+              border: '2px solid #107980',
+              borderRadius: '12px',
+              background: '#FFFFFF',
+              color: '#8B4513',
+              fontSize: '14px',
+              fontFamily: 'inherit',
+              resize: 'vertical',
+              outline: 'none',
+              transition: 'all 0.3s ease',
+              boxSizing: 'border-box'
+            }}
+            maxLength={200}
+            onFocus={(e) => {
+              e.target.style.borderColor = '#0d6b71';
+              e.target.style.boxShadow = '0 0 0 3px rgba(16, 121, 128, 0.1)';
+            }}
+            onBlur={(e) => {
+              e.target.style.borderColor = '#107980';
+              e.target.style.boxShadow = 'none';
+            }}
+          />
+          
+          {/* Character Counter */}
+          <div style={{
+            position: 'absolute',
+            bottom: '8px',
+            right: '12px',
+            fontSize: '12px',
+            color: message.length > 180 ? '#FF6B6B' : '#8B4513',
+            background: 'rgba(245, 241, 232, 0.9)',
+            padding: '2px 6px',
+            borderRadius: '4px',
+            fontWeight: '500'
+          }}>
+            {message.length}/200
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div style={{
+          display: 'flex',
+          gap: '12px'
+        }}>
+          <button
+            onClick={onClose}
+            disabled={isAnimating}
+            style={{
+              flex: 1,
+              padding: '14px 20px',
+              background: '#F5F1E8',
+              border: '2px solid #8B4513',
+              borderRadius: '12px',
+              color: '#8B4513',
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: isAnimating ? 'not-allowed' : 'pointer',
+              transition: 'all 0.3s ease',
+              opacity: isAnimating ? 0.6 : 1
+            }}
+            onMouseEnter={(e) => {
+              if (!isAnimating) {
+                e.currentTarget.style.background = '#8B4513';
+                e.currentTarget.style.color = '#F5F1E8';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isAnimating) {
+                e.currentTarget.style.background = '#F5F1E8';
+                e.currentTarget.style.color = '#8B4513';
+              }
+            }}
+          >
+            Cancel
+          </button>
+          
+          <button
+            onClick={handleSend}
+            disabled={!message.trim() || isAnimating}
+            style={{
+              flex: 1,
+              padding: '14px 20px',
+              background: message.trim() ? 'linear-gradient(135deg, #107980, #0d6b71)' : '#E0E0E0',
+              border: '2px solid',
+              borderColor: message.trim() ? '#107980' : '#E0E0E0',
+              borderRadius: '12px',
+              color: message.trim() ? '#FFFFFF' : '#999999',
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: message.trim() && !isAnimating ? 'pointer' : 'not-allowed',
+              transition: 'all 0.3s ease',
+              opacity: isAnimating ? 0.6 : 1,
+              transform: message.trim() ? 'scale(1)' : 'scale(0.98)'
+            }}
+            onMouseEnter={(e) => {
+              if (message.trim() && !isAnimating) {
+                e.currentTarget.style.transform = 'scale(1.02)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 121, 128, 0.3)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (message.trim() && !isAnimating) {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.boxShadow = 'none';
+              }
+            }}
+          >
+            Send Request
+          </button>
+        </div>
+
+        {/* Decorative Paper Texture */}
+        <div style={{
+          position: 'absolute',
+          top: '0',
+          left: '0',
+          right: '0',
+          bottom: '0',
+          background: `
+            radial-gradient(circle at 20% 20%, rgba(255,255,255,0.1) 1px, transparent 1px),
+            radial-gradient(circle at 80% 80%, rgba(255,255,255,0.1) 1px, transparent 1px)
+          `,
+          backgroundSize: '20px 20px',
+          pointerEvents: 'none',
+          borderRadius: '18px'
+        }} />
+      </div>
+
+      {/* CSS Animations */}
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.1); }
+        }
+      `}</style>
+    </div>
+  );
 }
 
 

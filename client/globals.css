@@ -1,24 +1,24 @@
 :root {
-  /* Using the exact colors specified: F9DED7, FDD8D6, A0522D */
-  --background: #fefefe;
-  --foreground: #2c2c2c;
-  --card: #f9ded7;
-  --card-foreground: #2c2c2c;
-  --popover: #fefefe;
-  --popover-foreground: #2c2c2c;
-  --primary: #a0522d;
+  /* New theme: Light beige background with dark brown header/footer and black card text */
+  --background: #F5F1E8;
+  --foreground: #8B4513;
+  --card: #F5F1E8;
+  --card-foreground: #000000;
+  --popover: #F5F1E8;
+  --popover-foreground: #000000;
+  --primary: #107980;
   --primary-foreground: #ffffff;
-  --secondary: #a0522d;
+  --secondary: #107980;
   --secondary-foreground: #ffffff;
-  --muted: #fdd8d6;
-  --muted-foreground: #6b4423;
-  --accent: #a0522d;
+  --muted: #EDE8D0;
+  --muted-foreground: #8B4513;
+  --accent: #107980;
   --accent-foreground: #ffffff;
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
-  --border: #d2b48c;
-  --input: #f9ded7;
-  --ring: rgba(160, 82, 45, 0.3);
+  --border: #107980;
+  --input: #F5F1E8;
+  --ring: rgba(16, 121, 128, 0.3);
   --radius: 0.75rem;
 }
 
@@ -80,6 +80,38 @@ body {
   animation: cardFlip 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
+/* Paper folding animations */
+.animate-paper-unfold {
+  animation: paperUnfold 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animate-paper-fold {
+  animation: paperFold 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animate-paper-float {
+  animation: paperFloat 3s ease-in-out infinite;
+}
+
+.animate-corner-fold {
+  animation: cornerFold 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-8px) rotate(1deg);
+  }
+  50% {
+    transform: translateY(-4px) rotate(-1deg);
+  }
+  75% {
+    transform: translateY(-12px) rotate(0.5deg);
+  }
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -134,6 +166,113 @@ body {
   }
   100% {
     transform: rotateY(0deg);
+  }
+}
+
+/* Paper folding specific animations */
+@keyframes paperUnfold {
+  0% {
+    transform: scale(0) rotateX(90deg);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(0.8) rotateX(45deg);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1) rotateX(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes paperFold {
+  0% {
+    transform: scale(1) rotateX(0deg);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(0.8) rotateX(-45deg);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(0) rotateX(-90deg);
+    opacity: 0;
+  }
+}
+
+@keyframes paperFloat {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes cornerFold {
+  0% {
+    transform: scale(0) rotate(0deg);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2) rotate(180deg);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1) rotate(360deg);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { 
+    transform: scale(1); 
+  }
+  50% { 
+    transform: scale(1.1); 
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+/* Enhanced button animations */
+.animate-button-press {
+  animation: buttonPress 0.2s ease-out;
+}
+
+@keyframes buttonPress {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.95);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Text input focus animation */
+.animate-input-focus {
+  animation: inputFocus 0.3s ease-out;
+}
+
+@keyframes inputFocus {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+  100% {
+    transform: scale(1);
   }
 }
 
@@ -316,7 +455,62 @@ body {
 .inline-block { display: inline-block; }
 
 /* Responsive utilities */
+@media (max-width: 480px) {
+  /* Mobile phones */
+  .mobile\:text-xs { font-size: 0.75rem; }
+  .mobile\:text-sm { font-size: 0.875rem; }
+  .mobile\:text-base { font-size: 1rem; }
+  .mobile\:p-2 { padding: 0.5rem; }
+  .mobile\:p-3 { padding: 0.75rem; }
+  .mobile\:p-4 { padding: 1rem; }
+  .mobile\:gap-2 { gap: 0.5rem; }
+  .mobile\:gap-3 { gap: 0.75rem; }
+  .mobile\:w-full { width: 100%; }
+  .mobile\:max-w-none { max-width: none; }
+  .mobile\:text-center { text-align: center; }
+  .mobile\:flex-col { flex-direction: column; }
+  .mobile\:items-center { align-items: center; }
+  .mobile\:justify-center { justify-content: center; }
+  .mobile\:rounded-lg { border-radius: 0.5rem; }
+  .mobile\:text-lg { font-size: 1.125rem; }
+  .mobile\:text-xl { font-size: 1.25rem; }
+  .mobile\:mb-2 { margin-bottom: 0.5rem; }
+  .mobile\:mb-3 { margin-bottom: 0.75rem; }
+  .mobile\:mb-4 { margin-bottom: 1rem; }
+  .mobile\:mt-2 { margin-top: 0.5rem; }
+  .mobile\:mt-3 { margin-top: 0.75rem; }
+  .mobile\:mt-4 { margin-top: 1rem; }
+}
+
+@media (min-width: 481px) and (max-width: 768px) {
+  /* Tablets */
+  .tablet\:text-sm { font-size: 0.875rem; }
+  .tablet\:text-base { font-size: 1rem; }
+  .tablet\:text-lg { font-size: 1.125rem; }
+  .tablet\:p-3 { padding: 0.75rem; }
+  .tablet\:p-4 { padding: 1rem; }
+  .tablet\:p-6 { padding: 1.5rem; }
+  .tablet\:gap-3 { gap: 0.75rem; }
+  .tablet\:gap-4 { gap: 1rem; }
+  .tablet\:max-w-sm { max-width: 24rem; }
+  .tablet\:max-w-md { max-width: 28rem; }
+  .tablet\:text-center { text-align: center; }
+  .tablet\:flex-col { flex-direction: column; }
+  .tablet\:items-center { align-items: center; }
+  .tablet\:justify-center { justify-content: center; }
+  .tablet\:rounded-xl { border-radius: 0.75rem; }
+  .tablet\:text-xl { font-size: 1.25rem; }
+  .tablet\:text-2xl { font-size: 1.5rem; }
+  .tablet\:mb-3 { margin-bottom: 0.75rem; }
+  .tablet\:mb-4 { margin-bottom: 1rem; }
+  .tablet\:mb-6 { margin-bottom: 1.5rem; }
+  .tablet\:mt-3 { margin-top: 0.75rem; }
+  .tablet\:mt-4 { margin-top: 1rem; }
+  .tablet\:mt-6 { margin-top: 1.5rem; }
+}
+
 @media (min-width: 768px) {
+  /* Desktop */
   .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .md\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .md\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -329,8 +523,314 @@ body {
   .md\:p-12 { padding: 3rem; }
   .md\:flex-row { flex-direction: row; }
   .md\:col-span-2 { grid-column: span 2 / span 2; }
+  .md\:max-w-lg { max-width: 32rem; }
+  .md\:max-w-xl { max-width: 36rem; }
+  .md\:max-w-2xl { max-width: 42rem; }
+  .md\:gap-6 { gap: 1.5rem; }
+  .md\:gap-8 { gap: 2rem; }
+  .md\:p-6 { padding: 1.5rem; }
+  .md\:p-8 { padding: 2rem; }
+  .md\:rounded-2xl { border-radius: 1rem; }
+  .md\:text-lg { font-size: 1.125rem; }
+  .md\:text-xl { font-size: 1.25rem; }
+  .md\:mb-6 { margin-bottom: 1.5rem; }
+  .md\:mb-8 { margin-bottom: 2rem; }
+  .md\:mt-6 { margin-top: 1.5rem; }
+  .md\:mt-8 { margin-top: 2rem; }
 }
 
 @media (min-width: 1024px) {
+  /* Large Desktop */
   .lg\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .lg\:max-w-4xl { max-width: 56rem; }
+  .lg\:max-w-5xl { max-width: 64rem; }
+  .lg\:max-w-6xl { max-width: 72rem; }
+  .lg\:p-8 { padding: 2rem; }
+  .lg\:p-12 { padding: 3rem; }
+  .lg\:gap-8 { gap: 2rem; }
+  .lg\:gap-12 { gap: 3rem; }
+  .lg\:text-2xl { font-size: 1.5rem; }
+  .lg\:text-3xl { font-size: 1.875rem; }
+  .lg\:text-4xl { font-size: 2.25rem; }
+  .lg\:rounded-3xl { border-radius: 1.5rem; }
+  .lg\:mb-8 { margin-bottom: 2rem; }
+  .lg\:mb-12 { margin-bottom: 3rem; }
+  .lg\:mt-8 { margin-top: 2rem; }
+  .lg\:mt-12 { margin-top: 3rem; }
+}
+
+/* Global responsive adjustments */
+@media (max-width: 480px) {
+  body {
+    font-size: 14px;
+  }
+  
+  /* Adjust container max-widths for mobile */
+  .container {
+    max-width: 100%;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  /* Make buttons more touch-friendly on mobile */
+  button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Adjust spacing for mobile */
+  .mobile-spacing {
+    padding: 0.75rem;
+    margin: 0.5rem;
+  }
+  
+  /* Stack elements vertically on mobile */
+  .mobile-stack {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  /* Reduce font sizes for mobile */
+  .mobile-text {
+    font-size: 0.875rem;
+    line-height: 1.4;
+  }
+  
+  /* Make avatars smaller on mobile */
+  .mobile-avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 14px;
+  }
+  
+  /* Adjust button sizes for mobile */
+  .mobile-button {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    border-radius: 0.5rem;
+  }
+  
+  /* Make navigation more compact on mobile */
+  .mobile-nav {
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
+  
+  /* Adjust card layouts for mobile */
+  .mobile-card {
+    padding: 1rem;
+    margin: 0.5rem 0;
+    border-radius: 0.75rem;
+  }
+  
+  /* Responsive header */
+  .responsive-header {
+    padding: 12px 16px !important;
+  }
+  
+  .responsive-header h1 {
+    font-size: 24px !important;
+  }
+  
+  .responsive-header .profile-btn {
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 14px !important;
+  }
+  
+  /* Responsive navigation */
+  .responsive-nav {
+    padding: 8px 8px !important;
+  }
+  
+  .responsive-nav button {
+    padding: 6px 8px !important;
+    font-size: 9px !important;
+    gap: 2px !important;
+  }
+  
+  .responsive-nav svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+  
+  .responsive-nav .badge {
+    width: 14px !important;
+    height: 14px !important;
+    font-size: 9px !important;
+    top: 1px !important;
+    right: 4px !important;
+  }
+  
+  /* Responsive main content */
+  .responsive-main {
+    padding: 8px !important;
+  }
+  
+  /* Responsive dating zone */
+  .responsive-dating-card {
+    padding: 16px !important;
+    min-height: 500px !important;
+    border-radius: 16px !important;
+  }
+  
+  .responsive-dating-card .avatar {
+    width: 60px !important;
+    height: 60px !important;
+    font-size: 24px !important;
+  }
+  
+  .responsive-dating-card .name {
+    font-size: 20px !important;
+    margin-bottom: 6px !important;
+  }
+  
+  .responsive-dating-card .details {
+    font-size: 12px !important;
+    gap: 8px !important;
+  }
+  
+  .responsive-dating-card .section-title {
+    font-size: 16px !important;
+    margin-bottom: 8px !important;
+  }
+  
+  .responsive-dating-card .bio-text {
+    font-size: 14px !important;
+    line-height: 1.4 !important;
+  }
+  
+  .responsive-dating-card .interest-tag {
+    padding: 6px 12px !important;
+    font-size: 12px !important;
+  }
+  
+  .responsive-dating-card .interest-desc {
+    font-size: 12px !important;
+    line-height: 1.3 !important;
+  }
+  
+  /* Responsive action buttons */
+  .responsive-actions {
+    gap: 16px !important;
+    margin-top: 20px !important;
+    padding: 0 12px !important;
+  }
+  
+  .responsive-actions button {
+    width: 56px !important;
+    height: 56px !important;
+  }
+  
+  .responsive-actions svg {
+    width: 20px !important;
+    height: 20px !important;
+  }
+  
+  /* Responsive matches section */
+  .responsive-matches {
+    gap: 8px !important;
+  }
+  
+  .responsive-matches .match-item {
+    padding: 12px !important;
+  }
+  
+  .responsive-matches .match-avatar {
+    width: 40px !important;
+    height: 40px !important;
+    font-size: 14px !important;
+  }
+  
+  .responsive-matches .match-name {
+    font-size: 14px !important;
+  }
+  
+  .responsive-matches .match-details {
+    font-size: 11px !important;
+    gap: 8px !important;
+  }
+  
+  .responsive-matches .match-tag {
+    padding: 3px 6px !important;
+    font-size: 10px !important;
+  }
+  
+  .responsive-matches .view-profile-btn {
+    padding: 6px 10px !important;
+    font-size: 11px !important;
+    min-width: 100px !important;
+  }
+  
+  .responsive-matches .view-profile-btn svg {
+    width: 14px !important;
+    height: 14px !important;
+  }
+  
+  /* Responsive empty state */
+  .responsive-empty {
+    padding: 24px 16px !important;
+    border-radius: 12px !important;
+    margin: 12px 0 !important;
+  }
+  
+  .responsive-empty svg {
+    width: 36px !important;
+    height: 36px !important;
+    margin-bottom: 12px !important;
+  }
+  
+  .responsive-empty h3 {
+    font-size: 16px !important;
+  }
+  
+  .responsive-empty p {
+    font-size: 12px !important;
+  }
+}
+
+@media (min-width: 481px) and (max-width: 768px) {
+  /* Tablet adjustments */
+  body {
+    font-size: 15px;
+  }
+  
+  .container {
+    max-width: 100%;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+  
+  .tablet-spacing {
+    padding: 1rem;
+    margin: 0.75rem;
+  }
+  
+  .tablet-text {
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+  
+  .tablet-avatar {
+    width: 48px;
+    height: 48px;
+    font-size: 16px;
+  }
+  
+  .tablet-button {
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    border-radius: 0.75rem;
+  }
+  
+  .tablet-nav {
+    padding: 0.75rem;
+    gap: 0.75rem;
+  }
+  
+  .tablet-card {
+    padding: 1.5rem;
+    margin: 0.75rem 0;
+    border-radius: 1rem;
+  }
 }
