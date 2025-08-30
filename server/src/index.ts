@@ -487,7 +487,7 @@ app.get("/api/feed", async (req, res) => {
     const { data, error } = await supabase
       .from('users')
       .select(`
-        id, name, gender, location, custom_location,
+        id, name, gender, date_of_birth, location, custom_location,
         profiles!inner (
           bio, relationship_status, interest_1, interest_1_desc, interest_2, interest_2_desc, interest_3, interest_3_desc
         )
@@ -501,11 +501,26 @@ app.get("/api/feed", async (req, res) => {
       throw error;
     }
 
-    // Flatten the data structure
-    const flattenedData = data.map(item => ({
-      ...item,
-      ...item.profiles
-    }));
+    // Flatten the data structure and calculate age
+    const flattenedData = data.map(item => {
+      // Calculate age from date_of_birth
+      let age = 0;
+      if (item.date_of_birth) {
+        const birthDate = new Date(item.date_of_birth);
+        const today = new Date();
+        age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+          age--;
+        }
+      }
+
+      return {
+        ...item,
+        ...item.profiles,
+        age: age > 0 ? age : 0
+      };
+    });
 
     res.json(flattenedData);
   } catch (err) {
@@ -612,13 +627,13 @@ app.get("/api/matches", async (req, res) => {
         user_a_id,
         user_b_id,
         user_a:users!matches_user_a_id_fkey (
-          id, name, instagram_handle, location, custom_location,
+          id, name, date_of_birth, instagram_handle, location, custom_location,
           profiles (
             bio, relationship_status, interest_1, interest_1_desc, interest_2, interest_2_desc, interest_3, interest_3_desc
           )
         ),
         user_b:users!matches_user_b_id_fkey (
-          id, name, instagram_handle, location, custom_location,
+          id, name, date_of_birth, instagram_handle, location, custom_location,
           profiles (
             bio, relationship_status, interest_1, interest_1_desc, interest_2, interest_2_desc, interest_3, interest_3_desc
           )
@@ -637,6 +652,18 @@ app.get("/api/matches", async (req, res) => {
       const otherUser = isUserA ? match.user_b : match.user_a;
       const otherUserId = isUserA ? match.user_b_id : match.user_a_id;
       
+      // Calculate age from date_of_birth
+      let age = 0;
+      if (otherUser.date_of_birth) {
+        const birthDate = new Date(otherUser.date_of_birth);
+        const today = new Date();
+        age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+          age--;
+        }
+      }
+      
       return {
         id: match.id,
         other_user_id: otherUserId,
@@ -651,7 +678,8 @@ app.get("/api/matches", async (req, res) => {
         interest_3_desc: otherUser.profiles?.[0]?.interest_3_desc || '',
         instagram_handle: otherUser.instagram_handle,
         location: otherUser.location,
-        custom_location: otherUser.custom_location
+        custom_location: otherUser.custom_location,
+        age: age > 0 ? age : 0
       };
     });
 

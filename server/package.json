@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "nodemon --watch src --exec ts-node src/index.ts",
+    "dev": "nodemon --watch src --exec \"tsx src/index.ts\"",
     "build": "tsc",
     "start": "node dist/index.js",
     "db:sql": "set PGPASSWORD=Rishi#1203 && psql -U postgres -d dating -f src/schema.sql"
@@ -34,6 +34,7 @@
     "@types/pg": "^8.15.5",
     "nodemon": "^3.0.3",
     "ts-node": "^10.9.2",
+    "tsx": "^4.20.5",
     "typescript": "^5.4.5"
   }
 }
