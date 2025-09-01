@@ -55,6 +55,7 @@ export function Dashboard(){
   const [selectedChatUser, setSelectedChatUser] = useState<string | null>(null)
   const [showProfileDropdown, setShowProfileDropdown] = useState(false)
   const [showSuccessAnimation, setShowSuccessAnimation] = useState(false)
+  const [upgradeModal, setUpgradeModal] = useState<{visible:boolean; title:string; subtitle:string; cta:string; reason:'no-pack'|'requests-limit'|'matches-limit'|null}>({visible:false, title:'', subtitle:'', cta:'', reason:null})
   const userId = localStorage.getItem('userId') || ''
   const token = localStorage.getItem('authToken') || ''
   const socketRef = useRef<Socket | null>(null)
@@ -190,20 +191,35 @@ export function Dashboard(){
       if (response.ok) {
         // Show beautiful success animation
         setShowSuccessAnimation(true)
-        setTimeout(() => setShowSuccessAnimation(false), 3000) // Hide after 3 seconds
-        
-        // Immediately refresh data to show the sent request
+        setTimeout(() => setShowSuccessAnimation(false), 3000)
         fetchData()
-        
-        // Server will emit WebSocket event automatically
-        // No need to emit from client to prevent duplicates
-        
-        // Immediately refresh data to reduce latency
-        setTimeout(() => {
-          fetchData()
-        }, 100) // Refresh after 100ms
+        setTimeout(() => { fetchData() }, 100)
       } else {
-        alert('Failed to send request. Please try again.')
+        const err = await response.json().catch(()=>({}))
+        // Handle pack gating errors
+        if (response.status === 402 && err?.errorCode === 'NO_PACK') {
+          setUpgradeModal({
+            visible: true,
+            title: 'Unlock Matching',
+            subtitle: 'Purchase a pack to start sending match requests.',
+            cta: 'View Packs',
+            reason: 'no-pack'
+          })
+          setActiveTab('packs')
+          return
+        }
+        if (response.status === 403 && err?.errorCode === 'REQUESTS_LIMIT_REACHED') {
+          setUpgradeModal({
+            visible: true,
+            title: "You've reached your request limit",
+            subtitle: `Your plan allows up to ${err?.total ?? ''} requests. Upgrade to continue.`,
+            cta: 'Upgrade Plan',
+            reason: 'requests-limit'
+          })
+          setActiveTab('packs')
+          return
+        }
+        alert(err?.error || 'Failed to send request. Please try again.')
       }
     } catch (error) {
       alert('Failed to send request. Please try again.')
@@ -387,6 +403,16 @@ export function Dashboard(){
                 setFiltersVisible={setFiltersVisible}
                 onSendRequest={sendRequest}
                 onViewProfile={setSelected}
+                onRequireUpgrade={(info)=>{
+                  setUpgradeModal({
+                    visible: true,
+                    title: info.title,
+                    subtitle: info.subtitle,
+                    cta: info.cta,
+                    reason: info.reason
+                  })
+                  setActiveTab('packs')
+                }}
               />
             </div>
           )}
@@ -976,12 +1002,30 @@ export function Dashboard(){
           to { transform: translateX(0%); }
         }
       `}</style>
+
+      {upgradeModal.visible && (
+        <div style={{position:'fixed', inset:0, display:'grid', placeItems:'center', background:'rgba(0,0,0,0.5)', zIndex:1000}} onClick={()=> setUpgradeModal(prev=>({...prev, visible:false}))}>
+          <div onClick={e=>e.stopPropagation()} style={{width:'92%', maxWidth:420, borderRadius:16, background:'#fff', padding:20, border:'1px solid #e9ecef', boxShadow:'0 10px 30px rgba(0,0,0,0.15)', transform:'scale(1)', transition:'transform .2s ease'}}>
+            <div style={{display:'flex', alignItems:'center', gap:12, marginBottom:8}}>
+              <div style={{width:40, height:40, borderRadius:12, background:'#ffedd5', display:'grid', placeItems:'center'}}>
+                <span style={{fontSize:20}}>⚠️</span>
+              </div>
+              <div style={{fontWeight:700, fontSize:18, color:'#111827'}}>{upgradeModal.title}</div>
+            </div>
+            <div style={{color:'#4b5563', fontSize:14, lineHeight:1.6, marginBottom:16}}>{upgradeModal.subtitle}</div>
+            <div style={{display:'flex', gap:12, justifyContent:'flex-end'}}>
+              <button onClick={()=> setUpgradeModal(prev=>({...prev, visible:false}))} style={{border:'1px solid #e5e7eb', background:'#fff', color:'#111827', borderRadius:10, padding:'10px 14px', cursor:'pointer'}}>Close</button>
+              <button onClick={()=> { setUpgradeModal(prev=>({...prev, visible:false})); setActiveTab('packs'); }} style={{border:'none', background:'linear-gradient(135deg,#10b981,#059669)', color:'#fff', borderRadius:10, padding:'10px 14px', cursor:'pointer', boxShadow:'0 6px 16px rgba(16,185,129,0.35)'}}>{upgradeModal.cta}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
 // Dating Zone Component
-function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisible, onSendRequest, onViewProfile }: {
+function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisible, onSendRequest, onViewProfile, onRequireUpgrade }: {
   feed: Profile[];
   filters: any;
   setFilters: (filters: any) => void;
@@ -989,6 +1033,7 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
   setFiltersVisible: (visible: boolean) => void;
   onSendRequest: (id: string, message: string) => void;
   onViewProfile: (profile: Profile) => void;
+  onRequireUpgrade: (info:{title:string; subtitle:string; cta:string; reason:'no-pack'|'requests-limit'|'matches-limit'}) => void;
 }) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isAnimating, setIsAnimating] = useState(false)
@@ -1064,9 +1109,45 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
     }, 300)
   }
 
-  const handleMatch = () => {
+  const handleMatch = async () => {
     if (isAnimating || !currentProfile) return
+    
+    // Check pack status directly without making a probe request
+    try {
+      const packResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/user/pack?userId=${localStorage.getItem('userId') || ''}`)
+      if (packResponse.ok) {
+        const packData = await packResponse.json()
+        
+        if (!packData) {
+          onRequireUpgrade({
+            title: 'Unlock Matching',
+            subtitle: 'Purchase a pack to start sending match requests.',
+            cta: 'View Packs',
+            reason: 'no-pack'
+          })
+          return
+        }
+        
+        if (packData.requests_remaining !== -1 && packData.requests_remaining <= 0) {
+          onRequireUpgrade({
+            title: "You've reached your request limit",
+            subtitle: `Your plan allows up to ${packData.requests_total} requests. Upgrade to continue.`,
+            cta: 'Upgrade Plan',
+            reason: 'requests-limit'
+          })
+          return
+        }
+        
+        // Pack is valid and has remaining requests, show message prompt
+        setShowMessagePrompt(true)
+      } else {
+        // If we can't check pack status, still show prompt and let sendRequest handle errors
     setShowMessagePrompt(true)
+      }
+    } catch (error) {
+      // On error, show prompt and let sendRequest handle
+      setShowMessagePrompt(true)
+    }
   }
 
   const handleSendMessage = () => {
@@ -2107,10 +2188,9 @@ function PacksSection({ userId }: { userId: string }) {
         }
       }
 
-      // @ts-ignore
-      if (window.Razorpay) {
+      if ((window as any).Razorpay) {
         console.log('Razorpay options:', JSON.stringify(options, null, 2))
-        const rzp = new window.Razorpay(options)
+        const rzp = new (window as any).Razorpay(options)
         rzp.on('payment.failed', function (response: any) {
           console.error('Payment failed:', response.error)
           alert(`Payment failed: ${response.error.description}`)
@@ -3402,8 +3482,6 @@ function ChatPanel({ me, other }: { me: string; other: string }) {
     })
     socketRef.current = socket
 
-    socket.emit('authenticate', { userId: me })
-
     socket.on('new_message', (message: Msg) => {
       // Were we at bottom before appending?
       const wasAtBottom = isAtBottomTight()
@@ -3435,7 +3513,7 @@ function ChatPanel({ me, other }: { me: string; other: string }) {
 
     loadChatHistory()
 
-    return () => socketRef.current?.disconnect()
+    return () => { socketRef.current?.disconnect(); }
   }, [me, other])
 
   // ===== Send message =====

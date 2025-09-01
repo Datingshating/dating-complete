@@ -484,6 +484,22 @@ app.get("/api/feed", async (req, res) => {
   const userId = String(req.query.userId || "");
   
   try {
+    // First, get all users that the current user is already matched with
+    const { data: matchedUsers, error: matchError } = await supabase
+      .from('matches')
+      .select('user_a_id, user_b_id')
+      .or(`user_a_id.eq.${userId},user_b_id.eq.${userId}`);
+
+    if (matchError) {
+      throw matchError;
+    }
+
+    // Extract the IDs of matched users
+    const matchedUserIds = (matchedUsers || []).map((match: any) => 
+      match.user_a_id === userId ? match.user_b_id : match.user_a_id
+    );
+
+    // Get all approved users excluding current user
     const { data, error } = await supabase
       .from('users')
       .select(`
@@ -501,8 +517,12 @@ app.get("/api/feed", async (req, res) => {
       throw error;
     }
 
-    // Flatten the data structure and calculate age
-    const flattenedData = data.map(item => {
+    // Filter out matched users and flatten the data structure
+    const filteredData = (data || []).filter((item: any) => 
+      !matchedUserIds.includes(item.id)
+    );
+
+    const flattenedData = filteredData.map((item: any) => {
       // Calculate age from date_of_birth
       let age = 0;
       if (item.date_of_birth) {
@@ -515,9 +535,23 @@ app.get("/api/feed", async (req, res) => {
         }
       }
 
+      const profile = Array.isArray(item.profiles) ? item.profiles[0] : item.profiles;
+      
       return {
-        ...item,
-        ...item.profiles,
+        id: item.id,
+        name: item.name,
+        gender: item.gender,
+        date_of_birth: item.date_of_birth,
+        location: item.location,
+        custom_location: item.custom_location,
+        bio: profile?.bio || '',
+        relationship_status: profile?.relationship_status || '',
+        interest_1: profile?.interest_1 || '',
+        interest_1_desc: profile?.interest_1_desc || '',
+        interest_2: profile?.interest_2 || '',
+        interest_2_desc: profile?.interest_2_desc || '',
+        interest_3: profile?.interest_3 || '',
+        interest_3_desc: profile?.interest_3_desc || '',
         age: age > 0 ? age : 0
       };
     });
@@ -535,6 +569,36 @@ app.post("/api/requests", async (req, res) => {
   if (!fromUserId || !toUserId) return res.status(400).json({ error: "Missing" });
   
   try {
+    // Check sender's pack and requests limit
+    const { data: pack, error: packError } = await supabase
+      .from('user_packs')
+      .select('requests_remaining, requests_total, pack_name')
+      .eq('user_id', fromUserId)
+      .single();
+
+    if (packError && packError.code !== 'PGRST116') {
+      throw packError;
+    }
+
+    if (!pack) {
+      return res.status(402).json({
+        error: 'No active pack. Please purchase a pack to send requests.',
+        errorCode: 'NO_PACK'
+      });
+    }
+
+    const requestsRemaining = pack.requests_remaining;
+    if (requestsRemaining !== -1 && requestsRemaining <= 0) {
+      return res.status(403).json({
+        error: 'You have reached your connection request limit for your plan. Upgrade to continue.',
+        errorCode: 'REQUESTS_LIMIT_REACHED',
+        remaining: 0,
+        total: pack.requests_total,
+        packName: pack.pack_name
+      });
+    }
+
+    // Create the request
     const id = randomUUID();
     const { error } = await supabase
       .from('connection_requests')
@@ -547,6 +611,17 @@ app.post("/api/requests", async (req, res) => {
 
     if (error) {
       throw error;
+    }
+
+    // Decrement requests_remaining if not unlimited
+    if (requestsRemaining !== -1) {
+      const { error: decError } = await supabase
+        .from('user_packs')
+        .update({ requests_remaining: requestsRemaining - 1 })
+        .eq('user_id', fromUserId);
+      if (decError) {
+        console.error('Failed to decrement requests_remaining:', decError);
+      }
     }
 
     // Emit WebSocket event for real-time notification
@@ -580,6 +655,38 @@ app.post("/api/requests/:id/accept", async (req, res) => {
     const a = requestData.from_user_id;
     const b = requestData.to_user_id;
 
+    // Check both users' packs for matches limit
+    const { data: packA } = await supabase
+      .from('user_packs')
+      .select('matches_remaining, matches_total, pack_name')
+      .eq('user_id', a)
+      .single();
+    const { data: packB } = await supabase
+      .from('user_packs')
+      .select('matches_remaining, matches_total, pack_name')
+      .eq('user_id', b)
+      .single();
+
+    // If either user has no pack or no remaining matches (and not unlimited), block
+    if (!packA || (packA.matches_remaining !== -1 && packA.matches_remaining <= 0)) {
+      return res.status(403).json({
+        error: 'Sender has reached matches limit. Ask them to upgrade.',
+        errorCode: 'MATCHES_LIMIT_REACHED_SENDER',
+        remaining: packA ? Math.max(0, packA.matches_remaining) : 0,
+        total: packA ? packA.matches_total : 0,
+        packName: packA ? packA.pack_name : undefined
+      });
+    }
+    if (!packB || (packB.matches_remaining !== -1 && packB.matches_remaining <= 0)) {
+      return res.status(403).json({
+        error: 'You have reached your matches limit for your plan. Upgrade to continue.',
+        errorCode: 'MATCHES_LIMIT_REACHED',
+        remaining: packB ? Math.max(0, packB.matches_remaining) : 0,
+        total: packB ? packB.matches_total : 0,
+        packName: packB ? packB.pack_name : undefined
+      });
+    }
+
     // Create the match
     const { error: matchError } = await supabase
       .from('matches')
@@ -605,6 +712,28 @@ app.post("/api/requests/:id/accept", async (req, res) => {
 
     if (deleteError) {
       console.error('Error deleting request:', deleteError);
+    }
+
+    // Decrement matches_remaining for both users if not unlimited
+    const updates: Promise<any>[] = [];
+    if (packA.matches_remaining !== -1) {
+      updates.push(
+        supabase
+          .from('user_packs')
+          .update({ matches_remaining: packA.matches_remaining - 1 })
+          .eq('user_id', a)
+      );
+    }
+    if (packB.matches_remaining !== -1) {
+      updates.push(
+        supabase
+          .from('user_packs')
+          .update({ matches_remaining: packB.matches_remaining - 1 })
+          .eq('user_id', b)
+      );
+    }
+    if (updates.length > 0) {
+      await Promise.allSettled(updates);
     }
 
     console.log(`Match created and request deleted for users ${a} and ${b}`);
