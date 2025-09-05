@@ -176,6 +176,23 @@ export function Dashboard(){
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [showProfileDropdown])
 
+  // Header scroll effect
+  useEffect(() => {
+    const handleScroll = () => {
+      const header = document.getElementById('app-header')
+      if (header) {
+        if (window.scrollY > 10) {
+          header.classList.add('scrolled')
+        } else {
+          header.classList.remove('scrolled')
+        }
+      }
+    }
+
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
   async function sendRequest(toUserId:string, message:string){
     if (!message.trim()) return
     
@@ -261,153 +278,57 @@ export function Dashboard(){
       flexDirection: 'column',
       minHeight: '100vh', 
       background: '#F5F1E8',
-      paddingBottom: '80px', // Space for bottom nav
+      paddingBottom: '88px', // Space for footer navigation
       paddingLeft: '16px',
       paddingRight: '16px',
       paddingTop: '16px'
     }}>
       {/* Top Header */}
-      <header className="responsive-header" style={{
-        background: '#EDE8D0',
-        color: '#8B4513',
-        padding: '16px 20px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-        borderBottom: '2px solid #8B4513',
-        position: 'sticky',
-        top: 0,
-        zIndex: 100
-      }}>
-        <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
-          <h1 style={{
-            margin: 0, 
-            fontSize: 28, 
-            fontWeight: 800
-          }}>Whispyr</h1>
-        </div>
-        <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
-          <div style={{position: 'relative'}} data-profile-dropdown>
+      <header className="app-header" id="app-header">
+        <h1 className="header-brand">Whispyr</h1>
+        <div style={{position: 'relative', zIndex: 1001}} data-profile-dropdown>
             <button 
-              className="profile-btn"
+              className="profile-avatar"
               onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-              style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '50%',
-                background: '#8B4513',
-                color: 'white',
-                border: 'none',
-                fontSize: '16px',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.2s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#A0522D'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = '#8B4513'
-              }}
+              aria-label="Profile menu"
             >
               {me?.name?.charAt(0).toUpperCase() || 'U'}
             </button>
             
             {showProfileDropdown && (
-              <div style={{
-                position: 'absolute',
-                top: '100%',
-                right: 0,
-                marginTop: '8px',
-                background: 'white',
-                borderRadius: '8px',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                border: '1px solid #e9ecef',
-                minWidth: '160px',
-                zIndex: 1000
-              }}>
+              <div className="profile-dropdown">
                 <button
+                  className="dropdown-item"
                   onClick={() => {
                     setActiveTab('profile')
                     setShowProfileDropdown(false)
                   }}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    background: 'transparent',
-                    border: 'none',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    color: '#2c2c2c',
-                    borderBottom: '1px solid #f1f3f4',
-                    transition: 'background 0.2s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#f8f9fa'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'transparent'
-                  }}
                 >
-                  👤 View Profile
+                  <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                  </svg>
+                  View Profile
                 </button>
                 <Link
                   to="/terms"
+                  className="dropdown-item"
                   onClick={() => setShowProfileDropdown(false)}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    background: 'transparent',
-                    border: 'none',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    color: '#2c2c2c',
-                    borderBottom: '1px solid #f1f3f4',
-                    transition: 'background 0.2s ease',
-                    textDecoration: 'none',
-                    display: 'block'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#f8f9fa'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'transparent'
-                  }}
+                  style={{textDecoration: 'none', display: 'block'}}
                 >
-                  📋 Terms & Conditions
+                  Terms & Conditions
                 </Link>
                 <button
+                  className="dropdown-item danger"
                   onClick={handleLogout}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    background: 'transparent',
-                    border: 'none',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    color: '#dc2626',
-                    transition: 'background 0.2s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#fef2f2'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'transparent'
-                  }}
                 >
-                  🚪 Logout
+                  <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M16,17V14H9V10H16V7L21,12L16,17M14,2A2,2 0 0,1 16,4V6H14V4H5V20H14V18H16V20A2,2 0 0,1 14,22H5A2,2 0 0,1 3,20V4A2,2 0 0,1 5,2H14Z"/>
+                  </svg>
+                  Logout
                 </button>
               </div>
             )}
           </div>
-        </div>
       </header>
 
       {/* Main Content */}
@@ -723,185 +644,68 @@ export function Dashboard(){
         </Modal>
       )}
 
-      {/* Bottom Navigation */}
+      {/* Footer Navigation */}
       {!selectedChatUser && (
-        <nav className="responsive-nav" style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          background: '#EDE8D0',
-          borderTop: '1px solid #8B4513',
-          display: 'flex',
-          justifyContent: 'space-around',
-          alignItems: 'center',
-          padding: '10px 12px',
-          zIndex: 1000,
-          boxShadow: '0 -2px 10px rgba(0,0,0,0.1)',
-          maxWidth: '100%',
-          margin: '0 auto'
-        }}>
+        <nav className="footer-navigation">
           <button
-            style={{
-              background: activeTab === 'dating' ? '#E8F5E8' : 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '3px',
-              padding: '8px 12px',
-              borderRadius: '12px',
-              color: activeTab === 'dating' ? '#8B4513' : '#000000',
-              fontSize: '10px',
-              fontWeight: 600,
-              transition: 'all 0.2s ease'
-            }}
+            className={`footer-nav-item ${activeTab === 'dating' ? 'active' : ''}`}
             onClick={() => setActiveTab('dating')}
           >
-            <svg width="20" height="20" fill={activeTab === 'dating' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <svg className="footer-nav-icon" fill={activeTab === 'dating' ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
               <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
             </svg>
-            Discover
+            <span className="footer-nav-label">Discover</span>
           </button>
 
           <button
-            style={{
-              background: activeTab === 'matches' ? '#E8F5E8' : 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '3px',
-              padding: '8px 12px',
-              borderRadius: '12px',
-              color: activeTab === 'matches' ? '#8B4513' : '#000000',
-              fontSize: '10px',
-              fontWeight: 600,
-              transition: 'all 0.2s ease',
-              position: 'relative'
-            }}
+            className={`footer-nav-item ${activeTab === 'matches' ? 'active' : ''}`}
             onClick={() => setActiveTab('matches')}
           >
-            <svg width="20" height="20" fill={activeTab === 'matches' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <svg className="footer-nav-icon" fill={activeTab === 'matches' ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
               <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
             </svg>
-            Matches
+            <span className="footer-nav-label">Matches</span>
             {matches.length > 0 && (
-              <div className="badge" style={{
-                position: 'absolute',
-                top: '2px',
-                right: '6px',
-                background: '#FF6B35',
-                color: 'white',
-                borderRadius: '50%',
-                width: '16px',
-                height: '16px',
-                fontSize: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 'bold'
-              }}>
+              <div className="footer-nav-badge">
                 {matches.length}
               </div>
             )}
           </button>
 
           <button
-            style={{
-              background: activeTab === 'chat' ? '#E8F5E8' : 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '3px',
-              padding: '8px 12px',
-              borderRadius: '12px',
-              color: activeTab === 'chat' ? '#8B4513' : '#000000',
-              fontSize: '10px',
-              fontWeight: 600,
-              transition: 'all 0.2s ease'
-            }}
+            className={`footer-nav-item ${activeTab === 'chat' ? 'active' : ''}`}
             onClick={() => setActiveTab('chat')}
           >
-            <svg width="20" height="20" fill={activeTab === 'chat' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <svg className="footer-nav-icon" fill={activeTab === 'chat' ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
             </svg>
-            Chat
+            <span className="footer-nav-label">Chat</span>
           </button>
 
           <button
-            style={{
-              background: activeTab === 'requests' ? '#E8F5E8' : 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '3px',
-              padding: '8px 12px',
-              borderRadius: '12px',
-              color: activeTab === 'requests' ? '#8B4513' : '#000000',
-              fontSize: '10px',
-              fontWeight: 600,
-              transition: 'all 0.2s ease',
-              position: 'relative'
-            }}
+            className={`footer-nav-item ${activeTab === 'requests' ? 'active' : ''}`}
             onClick={() => setActiveTab('requests')}
           >
-            <svg width="20" height="20" fill={activeTab === 'requests' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <svg className="footer-nav-icon" fill={activeTab === 'requests' ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
               <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
             </svg>
-            Requests
+            <span className="footer-nav-label">Requests</span>
             {incoming.length > 0 && (
-              <div className="badge" style={{
-                position: 'absolute',
-                top: '2px',
-                right: '6px',
-                background: '#FF6B35',
-                color: 'white',
-                borderRadius: '50%',
-                width: '16px',
-                height: '16px',
-                fontSize: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 'bold'
-              }}>
+              <div className="footer-nav-badge">
                 {incoming.length}
               </div>
             )}
           </button>
 
           <button
-            style={{
-              background: activeTab === 'packs' ? '#E8F5E8' : 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '3px',
-              padding: '8px 12px',
-              borderRadius: '12px',
-              color: activeTab === 'packs' ? '#8B4513' : '#000000',
-              fontSize: '10px',
-              fontWeight: 600,
-              transition: 'all 0.2s ease'
-            }}
+            className={`footer-nav-item ${activeTab === 'packs' ? 'active' : ''}`}
             onClick={() => setActiveTab('packs')}
           >
-            <svg width="20" height="20" fill={activeTab === 'packs' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+            <svg className="footer-nav-icon" fill={activeTab === 'packs' ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
             </svg>
-            Packs
+            <span className="footer-nav-label">Packs</span>
           </button>
-
-
         </nav>
       )}
 
@@ -1136,6 +940,8 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
   const [isAnimating, setIsAnimating] = useState(false)
   const [showMessagePrompt, setShowMessagePrompt] = useState(false)
   const [message, setMessage] = useState('')
+  const [animationPhase, setAnimationPhase] = useState<'idle' | 'exiting' | 'entering'>('idle')
+  const [skipButtonRipple, setSkipButtonRipple] = useState(false)
 
   const calculateAge = (dateOfBirth: string | undefined, age: number | undefined): number => {
     // First priority: Use server-calculated age if available
@@ -1199,11 +1005,25 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
 
   const handleSkip = () => {
     if (isAnimating) return
+    
+    // Start ripple effect
+    setSkipButtonRipple(true)
+    setTimeout(() => setSkipButtonRipple(false), 600)
+    
     setIsAnimating(true)
+    setAnimationPhase('exiting')
+    
+    // Card exit animation
     setTimeout(() => {
       setCurrentIndex(prev => (prev + 1) % filteredFeed.length)
-      setIsAnimating(false)
-    }, 300)
+      setAnimationPhase('entering')
+      
+      // Card entrance animation
+      setTimeout(() => {
+        setAnimationPhase('idle')
+        setIsAnimating(false)
+      }, 200)
+    }, 400)
   }
 
   const handleMatch = async () => {
@@ -1284,180 +1104,452 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
         <button 
           onClick={() => setFiltersVisible(!filtersVisible)}
           style={{
-            background: '#EDE8D0',
-            color: '#8B4513',
-            border: '1px solid #8B4513',
-            borderRadius: '8px',
-            padding: '8px 12px',
-            fontSize: '13px',
+            background: '#FAF7F3',
+            color: '#5B6068',
+            border: '1px solid #E6DFD4',
+            borderRadius: '999px',
+            padding: '10px 16px',
+            fontSize: '14px',
             fontWeight: '500',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            height: '40px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = '#F5EFE3'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = '#FAF7F3'
+          }}
+          onFocus={(e) => {
+            e.currentTarget.style.borderColor = '#D6EFEA'
+            e.currentTarget.style.boxShadow = '0 0 0 2px #D6EFEA'
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.borderColor = '#E6DFD4'
+            e.currentTarget.style.boxShadow = 'none'
           }}
         >
-          <svg width="14" height="14" fill="#A0522D" viewBox="0 0 24 24" style={{marginRight: '6px'}}>
+          <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
             <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
           </svg>
           {filtersVisible ? 'Hide Filters' : 'Show Filters'}
         </button>
       </div>
 
+      {/* Active Filter Chips */}
+      {filtersVisible && (filters.gender || filters.relationshipStatus || filters.location || filters.ageRange[0] !== 18 || filters.ageRange[1] !== 50) && (
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '8px',
+          marginBottom: '16px',
+          alignItems: 'center'
+        }}>
+          {filters.ageRange[0] !== 18 || filters.ageRange[1] !== 50 ? (
+            <span style={{
+              background: '#EFE8DE',
+              color: '#5B6068',
+              borderRadius: '999px',
+              padding: '6px 10px',
+              fontSize: '12px',
+              cursor: 'pointer'
+            }} onClick={() => setFilters({...filters, ageRange: [18, 50]})}>
+              Age: {filters.ageRange[0]}–{filters.ageRange[1]}
+            </span>
+          ) : null}
+          {filters.gender && (
+            <span style={{
+              background: '#EFE8DE',
+              color: '#5B6068',
+              borderRadius: '999px',
+              padding: '6px 10px',
+              fontSize: '12px',
+              cursor: 'pointer'
+            }} onClick={() => setFilters({...filters, gender: ''})}>
+              Gender: {filters.gender.charAt(0).toUpperCase() + filters.gender.slice(1)}
+            </span>
+          )}
+          {filters.relationshipStatus && (
+            <span style={{
+              background: '#EFE8DE',
+              color: '#5B6068',
+              borderRadius: '999px',
+              padding: '6px 10px',
+              fontSize: '12px',
+              cursor: 'pointer'
+            }} onClick={() => setFilters({...filters, relationshipStatus: ''})}>
+              Status: {filters.relationshipStatus.charAt(0).toUpperCase() + filters.relationshipStatus.slice(1)}
+            </span>
+          )}
+          {filters.location && (
+            <span style={{
+              background: '#EFE8DE',
+              color: '#5B6068',
+              borderRadius: '999px',
+              padding: '6px 10px',
+              fontSize: '12px',
+              cursor: 'pointer'
+            }} onClick={() => setFilters({...filters, location: ''})}>
+              Location: {filters.location}
+            </span>
+          )}
+          <span style={{
+            color: '#8A4B2A',
+            fontSize: '12px',
+            cursor: 'pointer',
+            textDecoration: 'underline'
+          }} onClick={() => setFilters({
+            ageRange: [18, 50],
+            gender: '',
+            relationshipStatus: '',
+            location: ''
+          })}>
+            Clear all
+          </span>
+        </div>
+      )}
+
       {/* Collapsible Filters */}
       {filtersVisible && (
         <div style={{
-          background: '#F5F1E8',
-          borderRadius: '8px',
-          padding: '16px',
+          background: '#F7F3EC',
+          borderRadius: '16px',
+          padding: '24px',
           marginBottom: '16px',
-          border: '1px solid #8B4513'
+          border: '1px solid #E6DFD4',
+          boxShadow: '0 2px 8px rgba(17,24,39,0.06)',
+          transition: 'all 0.15s ease'
         }}>
           <h3 style={{
-            margin: '0 0 16px 0',
-            fontSize: '16px',
+            margin: '0 0 24px 0',
+            fontSize: '17px',
             fontWeight: '600',
-            color: '#8B4513'
+            color: '#8A4B2A'
           }}>
             Filters
           </h3>
+          
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '16px'
-          }}>
-            <div>
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '20px',
+            marginBottom: '24px'
+          }} className="filter-grid">
+            {/* Age Range Slider */}
+            <div style={{ gridColumn: 'span 1' }}>
               <label style={{
                 display: 'block',
-                marginBottom: '6px',
+                marginBottom: '12px',
                 fontWeight: '500',
-                color: '#8B4513',
-                fontSize: '13px'
+                color: '#1F2937',
+                fontSize: '14px'
               }}>
                 Age Range
               </label>
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '12px'
+                gap: '16px'
               }}>
-                <input 
-                  type="range" 
-                  min="18" 
-                  max="70" 
-                  value={filters.ageRange[0]} 
-                  onChange={(e) => setFilters({...filters, ageRange: [parseInt(e.target.value), filters.ageRange[1]]})}
-                  style={{
-                    flex: 1,
-                    accentColor: '#8B4513'
-                  }}
-                />
-                <span style={{
-                  minWidth: '40px',
-                  color: '#8B4513',
-                  fontSize: '12px',
-                  fontWeight: '500'
+                <div style={{
+                  flex: 1,
+                  position: 'relative',
+                  height: '20px'
                 }}>
-                  {filters.ageRange[0]}-{filters.ageRange[1]}
+                  {/* Background track */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: 0,
+                    right: 0,
+                    height: '4px',
+                    background: '#E6DFD4',
+                    borderRadius: '2px',
+                    transform: 'translateY(-50%)'
+                  }} />
+                  
+                  {/* Selected range track */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: `${((filters.ageRange[0] - 18) / (70 - 18)) * 100}%`,
+                    right: `${((70 - filters.ageRange[1]) / (70 - 18)) * 100}%`,
+                    height: '4px',
+                    background: 'rgba(138, 75, 42, 0.3)',
+                    borderRadius: '2px',
+                    transform: 'translateY(-50%)'
+                  }} />
+                  
+                  {/* Max range input - Higher z-index so it's on top */}
+                  <input 
+                    type="range" 
+                    min="18" 
+                    max="70" 
+                    value={filters.ageRange[1]} 
+                    onChange={(e) => {
+                      const newMax = parseInt(e.target.value)
+                      if (newMax >= filters.ageRange[0]) {
+                        setFilters({...filters, ageRange: [filters.ageRange[0], newMax]})
+                      }
+                    }}
+                    style={{
+                      position: 'absolute',
+                      width: '100%',
+                      height: '20px',
+                      background: 'transparent',
+                      outline: 'none',
+                      appearance: 'none',
+                      zIndex: 3,
+                      margin: 0,
+                      padding: 0,
+                      pointerEvents: 'auto'
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                        e.preventDefault()
+                        const step = e.shiftKey ? 5 : 1
+                        const newMax = e.key === 'ArrowLeft' 
+                          ? Math.max(filters.ageRange[0], filters.ageRange[1] - step)
+                          : Math.min(70, filters.ageRange[1] + step)
+                        setFilters({...filters, ageRange: [filters.ageRange[0], newMax]})
+                      }
+                    }}
+                  />
+                  
+                  {/* Min range input - Lower z-index */}
+                  <input 
+                    type="range" 
+                    min="18" 
+                    max="70" 
+                    value={filters.ageRange[0]} 
+                    onChange={(e) => {
+                      const newMin = parseInt(e.target.value)
+                      if (newMin <= filters.ageRange[1]) {
+                        setFilters({...filters, ageRange: [newMin, filters.ageRange[1]]})
+                      }
+                    }}
+                    style={{
+                      position: 'absolute',
+                      width: '100%',
+                      height: '20px',
+                      background: 'transparent',
+                      outline: 'none',
+                      appearance: 'none',
+                      zIndex: 2,
+                      margin: 0,
+                      padding: 0,
+                      pointerEvents: 'auto'
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                        e.preventDefault()
+                        const step = e.shiftKey ? 5 : 1
+                        const newMin = e.key === 'ArrowLeft' 
+                          ? Math.max(18, filters.ageRange[0] - step)
+                          : Math.min(filters.ageRange[1], filters.ageRange[0] + step)
+                        setFilters({...filters, ageRange: [newMin, filters.ageRange[1]]})
+                      }
+                    }}
+                  />
+                </div>
+                <span style={{
+                  minWidth: '60px',
+                  color: '#1F2937',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  textAlign: 'center'
+                }}>
+                  {filters.ageRange[0]}–{filters.ageRange[1]}
                 </span>
               </div>
             </div>
             
+            {/* Gender Dropdown */}
             <div>
               <label style={{
                 display: 'block',
-                marginBottom: '6px',
+                marginBottom: '8px',
                 fontWeight: '500',
-                color: '#8B4513',
-                fontSize: '13px'
+                color: '#1F2937',
+                fontSize: '14px'
               }}>
                 Gender
               </label>
-              <select 
-                value={filters.gender} 
-                onChange={(e) => setFilters({...filters, gender: e.target.value})}
-                style={{
-                  width: '100%',
-                  background: '#F5F1E8',
-                  border: '1px solid #8B4513',
-                  borderRadius: '6px',
-                  padding: '6px 10px',
-                  color: '#8B4513',
-                  fontSize: '13px',
-                  outline: 'none'
-                }}
-              >
-                <option value="">All genders</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="trans">Trans</option>
-              </select>
+              <div style={{ position: 'relative' }}>
+                <select 
+                  value={filters.gender} 
+                  onChange={(e) => setFilters({...filters, gender: e.target.value})}
+                  style={{
+                    width: '100%',
+                    height: '44px',
+                    background: '#FAF7F3',
+                    border: '1px solid #E6DFD4',
+                    borderRadius: '12px',
+                    padding: '0 16px',
+                    color: filters.gender ? '#1F2937' : '#5B6068',
+                    fontSize: '14px',
+                    outline: 'none',
+                    appearance: 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = '#D6EFEA'
+                    e.currentTarget.style.boxShadow = '0 0 0 2px #D6EFEA'
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = '#E6DFD4'
+                    e.currentTarget.style.boxShadow = 'none'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#F5EFE3'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#FAF7F3'
+                  }}
+                >
+                  <option value="">All genders</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="trans">Trans</option>
+                </select>
+                <div style={{
+                  position: 'absolute',
+                  right: '16px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  pointerEvents: 'none',
+                  color: '#8A4B2A',
+                  transition: 'transform 0.2s ease'
+                }}>
+                  <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M7 10l5 5 5-5z"/>
+                  </svg>
+                </div>
+              </div>
             </div>
 
+            {/* Relationship Status Dropdown */}
             <div>
               <label style={{
                 display: 'block',
-                marginBottom: '6px',
+                marginBottom: '8px',
                 fontWeight: '500',
-                color: '#8B4513',
-                fontSize: '13px'
+                color: '#1F2937',
+                fontSize: '14px'
               }}>
                 Relationship Status
               </label>
-              <select 
-                value={filters.relationshipStatus} 
-                onChange={(e) => setFilters({...filters, relationshipStatus: e.target.value})}
-                style={{
-                  width: '100%',
-                  background: '#F5F1E8',
-                  border: '1px solid #8B4513',
-                  borderRadius: '6px',
-                  padding: '6px 10px',
-                  color: '#8B4513',
-                  fontSize: '13px',
-                  outline: 'none'
-                }}
-              >
-                <option value="">All statuses</option>
-                <option value="single">Single</option>
-                <option value="in a relationship">In a relationship</option>
-                <option value="recent breakup">Recent breakup</option>
-                <option value="its complicated">It's complicated</option>
-                <option value="divorced">Divorced</option>
-              </select>
+              <div style={{ position: 'relative' }}>
+                <select 
+                  value={filters.relationshipStatus} 
+                  onChange={(e) => setFilters({...filters, relationshipStatus: e.target.value})}
+                  style={{
+                    width: '100%',
+                    height: '44px',
+                    background: '#FAF7F3',
+                    border: '1px solid #E6DFD4',
+                    borderRadius: '12px',
+                    padding: '0 16px',
+                    color: filters.relationshipStatus ? '#1F2937' : '#5B6068',
+                    fontSize: '14px',
+                    outline: 'none',
+                    appearance: 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = '#D6EFEA'
+                    e.currentTarget.style.boxShadow = '0 0 0 2px #D6EFEA'
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = '#E6DFD4'
+                    e.currentTarget.style.boxShadow = 'none'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#F5EFE3'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#FAF7F3'
+                  }}
+                >
+                  <option value="">All statuses</option>
+                  <option value="single">Single</option>
+                  <option value="in a relationship">In a relationship</option>
+                  <option value="recent breakup">Recent breakup</option>
+                  <option value="its complicated">It's complicated</option>
+                  <option value="divorced">Divorced</option>
+                </select>
+                <div style={{
+                  position: 'absolute',
+                  right: '16px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  pointerEvents: 'none',
+                  color: '#8A4B2A',
+                  transition: 'transform 0.2s ease'
+                }}>
+                  <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M7 10l5 5 5-5z"/>
+                  </svg>
+                </div>
+              </div>
             </div>
+          </div>
 
-            <div>
-              <label style={{
-                display: 'block',
-                marginBottom: '6px',
-                fontWeight: '500',
-                color: '#8B4513',
-                fontSize: '13px'
-              }}>
-                Location
-              </label>
-              <input 
-                type="text" 
-                placeholder="Enter location..."
-                value={filters.location} 
-                onChange={(e) => setFilters({...filters, location: e.target.value})}
-                style={{
-                  width: '100%',
-                  background: '#F5F1E8',
-                  border: '1px solid #8B4513',
-                  borderRadius: '6px',
-                  padding: '6px 10px',
-                  color: '#8B4513',
-                  fontSize: '13px',
-                  outline: 'none'
-                }}
-              />
-            </div>
+          {/* Location Input - Full Width */}
+          <div style={{ marginBottom: '24px' }}>
+            <label style={{
+              display: 'block',
+              marginBottom: '8px',
+              fontWeight: '500',
+              color: '#1F2937',
+              fontSize: '14px'
+            }}>
+              Location
+            </label>
+            <input 
+              type="text" 
+              placeholder="Enter location…"
+              value={filters.location} 
+              onChange={(e) => setFilters({...filters, location: e.target.value})}
+              style={{
+                width: '100%',
+                height: '44px',
+                background: '#FAF7F3',
+                border: '1px solid #E6DFD4',
+                borderRadius: '12px',
+                padding: '0 16px',
+                color: '#1F2937',
+                fontSize: '14px',
+                outline: 'none',
+                transition: 'all 0.2s ease'
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = '#D6EFEA'
+                e.currentTarget.style.boxShadow = '0 0 0 2px #D6EFEA'
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = '#E6DFD4'
+                e.currentTarget.style.boxShadow = 'none'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#F5EFE3'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#FAF7F3'
+              }}
+            />
           </div>
           
           {/* Clear Filters Button */}
           <div style={{
             display: 'flex',
-            justifyContent: 'center',
-            marginTop: '16px'
+            justifyContent: 'center'
           }}>
             <button
               onClick={() => setFilters({
@@ -1467,21 +1559,29 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
                 location: ''
               })}
               style={{
-                background: '#8B4513',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                padding: '8px 16px',
-                fontSize: '13px',
+                background: '#FAF7F3',
+                color: '#8A4B2A',
+                border: '1.5px solid #8A4B2A',
+                borderRadius: '12px',
+                padding: '12px 16px',
+                fontSize: '14px',
                 fontWeight: '500',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#6B3410'
+                e.currentTarget.style.background = '#F3EBDD'
+                e.currentTarget.style.borderColor = '#6E3E22'
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = '#8B4513'
+                e.currentTarget.style.background = '#FAF7F3'
+                e.currentTarget.style.borderColor = '#8A4B2A'
+              }}
+              onMouseDown={(e) => {
+                e.currentTarget.style.borderColor = '#6E3E22'
+              }}
+              onMouseUp={(e) => {
+                e.currentTarget.style.borderColor = '#8A4B2A'
               }}
             >
               Clear All Filters
@@ -1492,14 +1592,51 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
 
       {/* Show no profiles message if no matches */}
       {filteredFeed.length === 0 ? (
-        <div className="text-center py-10">
-          <div className="text-5xl mb-4">💔</div>
-          <h3 className="m-0 mb-2 text-card-foreground font-heading text-xl font-bold">
-            {feed.length === 0 ? 'No profiles available' : 'No profiles match your filters'}
+        <div style={{
+          textAlign: 'center',
+          padding: '40px 20px',
+          background: '#FAF7F3',
+          borderRadius: '16px',
+          border: '1px solid #E6DFD4',
+          marginTop: '16px'
+        }}>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>💔</div>
+          <h3 style={{
+            margin: '0 0 8px 0',
+            color: '#1F2937',
+            fontSize: '20px',
+            fontWeight: '600'
+          }}>
+            {feed.length === 0 ? 'No profiles available' : 'No matches found'}
           </h3>
-          <p className="text-muted-foreground m-0">
-            {feed.length === 0 ? 'Check back later for new profiles!' : 'Try adjusting your filter settings'}
+          <p style={{
+            margin: '0 0 16px 0',
+            color: '#5B6068',
+            fontSize: '14px'
+          }}>
+            {feed.length === 0 ? 'Check back later for new profiles!' : 'No matches. Try widening the age range or clearing a filter.'}
           </p>
+          {feed.length > 0 && (
+            <button
+              onClick={() => setFilters({
+                ageRange: [18, 50],
+                gender: '',
+                relationshipStatus: '',
+                location: ''
+              })}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#8A4B2A',
+                fontSize: '14px',
+                cursor: 'pointer',
+                textDecoration: 'underline',
+                padding: '4px 0'
+              }}
+            >
+              Reset filters
+            </button>
+          )}
         </div>
       ) : !currentProfile ? (
         <div className="text-center py-10">
@@ -1516,86 +1653,238 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
           {/* Single Profile Display */}
           {currentProfile ? (
         <div className="max-w-md mx-auto relative">
+        {/* Animation styles */}
+        <style>{`
+          @keyframes ripple {
+            0% {
+              width: 0;
+              height: 0;
+              opacity: 1;
+            }
+            100% {
+              width: 120px;
+              height: 120px;
+              opacity: 0;
+            }
+          }
+          @keyframes particleFloat {
+            0% {
+              transform: translateY(0) rotate(0deg) scale(1);
+              opacity: 1;
+            }
+            50% {
+              transform: translateY(-50px) rotate(180deg) scale(1.2);
+              opacity: 0.8;
+            }
+            100% {
+              transform: translateY(-100px) rotate(360deg) scale(0.5);
+              opacity: 0;
+            }
+          }
+          @keyframes cardGlow {
+            0% {
+              box-shadow: 0 0 0 rgba(139, 69, 19, 0);
+            }
+            50% {
+              box-shadow: 0 0 20px rgba(139, 69, 19, 0.3);
+            }
+            100% {
+              box-shadow: 0 0 0 rgba(139, 69, 19, 0);
+            }
+          }
+        `}</style>
         <div 
-          className={`bg-card rounded-3xl shadow-2xl transition-all duration-300 cursor-pointer flex flex-col responsive-dating-card ${
-            isAnimating ? 'scale-95' : 'scale-100'
-          }`}
+          className={`bg-card rounded-3xl shadow-2xl cursor-pointer flex flex-col responsive-dating-card`}
           style={{
-            background: '#F5F1E8',
-            border: '1px solid #8B4513',
+            background: 'linear-gradient(135deg, #FAF7F3 0%, #FFFFFF 100%)',
+            border: '1px solid rgba(166, 124, 82, 0.15)',
             padding: '32px',
             minHeight: '600px',
-            borderRadius: '24px'
+            borderRadius: '32px',
+            boxShadow: '0 25px 50px -12px rgba(166, 124, 82, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.05)',
+            transform: animationPhase === 'exiting' 
+              ? 'translateX(-100%) rotate(-15deg) scale(0.8)' 
+              : animationPhase === 'entering' 
+                ? 'translateX(100%) rotate(15deg) scale(0.8)' 
+                : 'translateX(0) rotate(0deg) scale(1)',
+            opacity: animationPhase === 'exiting' ? 0 : animationPhase === 'entering' ? 0 : 1,
+            transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+            filter: animationPhase === 'exiting' ? 'blur(2px)' : 'blur(0px)',
+            animation: animationPhase === 'exiting' ? 'cardGlow 0.4s ease-out' : 'none',
+            position: 'relative',
+            overflow: 'hidden'
           }}
           onClick={() => onViewProfile(currentProfile)}
         >
+          {/* Background decorative elements */}
+          <div style={{
+            position: 'absolute',
+            top: '-50px',
+            right: '-50px',
+            width: '200px',
+            height: '200px',
+            background: 'radial-gradient(circle, rgba(255, 182, 193, 0.08) 0%, transparent 70%)',
+            borderRadius: '50%',
+            zIndex: 0,
+            filter: 'blur(20px)'
+          }} />
+          <div style={{
+            position: 'absolute',
+            bottom: '-30px',
+            left: '-30px',
+            width: '150px',
+            height: '150px',
+            background: 'radial-gradient(circle, rgba(255, 218, 185, 0.06) 0%, transparent 70%)',
+            borderRadius: '50%',
+            zIndex: 0,
+            filter: 'blur(15px)'
+          }} />
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '300px',
+            height: '300px',
+            background: 'radial-gradient(circle, rgba(166, 124, 82, 0.03) 0%, transparent 70%)',
+            borderRadius: '50%',
+            zIndex: 0,
+            filter: 'blur(25px)'
+          }} />
+          
+          {/* Particle effect during transition */}
+          {animationPhase === 'exiting' && (
+            <div style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              pointerEvents: 'none',
+              zIndex: 10
+            }}>
+              {[...Array(8)].map((_, i) => (
+                <div
+                  key={i}
+                  style={{
+                    position: 'absolute',
+                    width: `${4 + Math.random() * 4}px`,
+                    height: `${4 + Math.random() * 4}px`,
+                    background: i % 2 === 0 ? '#8B4513' : '#107980',
+                    borderRadius: '50%',
+                    left: `${Math.cos(i * 45 * Math.PI / 180) * (20 + Math.random() * 20)}px`,
+                    top: `${Math.sin(i * 45 * Math.PI / 180) * (20 + Math.random() * 20)}px`,
+                    animation: `particleFloat 0.8s ease-out ${i * 0.05}s forwards`,
+                    opacity: 0,
+                    boxShadow: '0 0 6px rgba(139, 69, 19, 0.5)'
+                  }}
+                />
+              ))}
+            </div>
+          )}
           {/* Profile Header */}
           <div className="flex items-center gap-4 mb-8" style={{
-            gap: '16px',
-            marginBottom: '32px'
+            gap: '20px',
+            marginBottom: '32px',
+            position: 'relative',
+            zIndex: 1
           }}>
-            <div className="avatar" style={{
-              width: '80px',
-              height: '80px',
-              borderRadius: '50%',
-              background: '#107980',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              fontSize: '32px',
-              fontWeight: '900',
-              boxShadow: '0 4px 12px rgba(16, 121, 128, 0.2)'
-            }}>
-              {currentProfile?.name?.charAt(0).toUpperCase() || 'U'}
+            <div style={{ position: 'relative' }}>
+              {/* Blurred background shape */}
+              <div style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: '100px',
+                height: '100px',
+                background: 'radial-gradient(circle, rgba(255, 182, 193, 0.2) 0%, rgba(255, 218, 185, 0.1) 100%)',
+                borderRadius: '50%',
+                filter: 'blur(15px)',
+                zIndex: 0
+              }} />
+              <div className="avatar" style={{
+                width: '80px',
+                height: '80px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #FFB6C1 0%, #FFDAB9 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#A67C52',
+                fontSize: '32px',
+                fontWeight: '700',
+                fontFamily: 'Poppins, sans-serif',
+                boxShadow: '0 8px 25px rgba(255, 182, 193, 0.3), 0 0 0 3px rgba(255, 255, 255, 0.8)',
+                border: '2px solid rgba(166, 124, 82, 0.2)',
+                position: 'relative',
+                zIndex: 1
+              }}>
+                {currentProfile?.name?.charAt(0).toUpperCase() || 'U'}
+              </div>
             </div>
             <div className="flex-1">
               <h2 className="m-0 mb-2 font-heading font-black text-card-foreground name" style={{
-                fontSize: '24px',
+                fontSize: '28px',
                 marginBottom: '8px',
-                color: '#000000'
+                color: '#2E2E2E',
+                fontFamily: 'Poppins, sans-serif',
+                fontWeight: '700',
+                letterSpacing: '-0.025em'
               }}>
                 {currentProfile?.name || 'Unknown'}
                 {(() => {
                   const age = calculateAge(currentProfile?.date_of_birth, currentProfile?.age);
                   // Show age if it's available, or show "Age not available" if it's 0
                   return (
-                    <span style={{ color: '#000000', fontWeight: '600', fontSize: '17px' }}>
+                    <span style={{ 
+                      color: '#A67C52', 
+                      fontWeight: '500', 
+                      fontSize: '20px',
+                      fontFamily: 'Inter, sans-serif'
+                    }}>
                       {age > 0 ? `, ${age}` : ', Age not available'}
                     </span>
                   );
                 })()}
               </h2>
               <div className="flex items-center text-muted-foreground font-sans details" style={{
-                gap: '12px',
+                gap: '8px',
                 fontSize: '14px',
-                color: '#000000'
+                flexWrap: 'wrap'
               }}>
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '4px',
-                  background: '#EDE8D0',
-                  padding: '4px 8px',
-                  borderRadius: '6px',
-                  color: '#8B4513'
+                  gap: '6px',
+                  background: 'rgba(135, 206, 235, 0.3)',
+                  padding: '8px 12px',
+                  borderRadius: '20px',
+                  color: '#2E2E2E',
+                  fontFamily: 'Inter, sans-serif',
+                  fontWeight: '500',
+                  fontSize: '13px',
+                  border: '1px solid rgba(135, 206, 235, 0.2)',
+                  backdropFilter: 'blur(10px)',
+                  boxShadow: '0 2px 8px rgba(135, 206, 235, 0.15)'
                 }}>
-                  {getGenderIcon(currentProfile?.gender)}
                   <span>{currentProfile?.gender || 'Unknown'}</span>
                 </div>
                 
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '4px',
-                  background: '#EDE8D0',
-                  padding: '4px 8px',
-                  borderRadius: '6px',
-                  color: '#8B4513'
+                  gap: '6px',
+                  background: 'rgba(255, 182, 193, 0.3)',
+                  padding: '8px 12px',
+                  borderRadius: '20px',
+                  color: '#2E2E2E',
+                  fontFamily: 'Inter, sans-serif',
+                  fontWeight: '500',
+                  fontSize: '13px',
+                  border: '1px solid rgba(255, 182, 193, 0.2)',
+                  backdropFilter: 'blur(10px)',
+                  boxShadow: '0 2px 8px rgba(255, 182, 193, 0.15)'
                 }}>
-                  <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
-                    <circle cx="12" cy="12" r="4"/>
-                  </svg>
                   <span>{currentProfile?.relationship_status || 'Unknown'}</span>
                 </div>
                 
@@ -1603,15 +1892,18 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '4px',
-                    background: '#EDE8D0',
-                    padding: '4px 8px',
-                    borderRadius: '6px',
-                    color: '#8B4513'
+                    gap: '6px',
+                    background: 'rgba(188, 227, 196, 0.3)',
+                    padding: '8px 12px',
+                    borderRadius: '20px',
+                    color: '#2E2E2E',
+                    fontFamily: 'Inter, sans-serif',
+                    fontWeight: '500',
+                    fontSize: '13px',
+                    border: '1px solid rgba(188, 227, 196, 0.2)',
+                    backdropFilter: 'blur(10px)',
+                    boxShadow: '0 2px 8px rgba(188, 227, 196, 0.15)'
                   }}>
-                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-                    </svg>
                     <span>{currentProfile?.location}</span>
                   </div>
                 )}
@@ -1619,54 +1911,102 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
             </div>
           </div>
 
+          {/* Gradient Divider */}
+          <div style={{
+            height: '1px',
+            background: 'linear-gradient(90deg, transparent 0%, rgba(166, 124, 82, 0.15) 50%, transparent 100%)',
+            margin: '28px 0',
+            position: 'relative',
+            zIndex: 1
+          }} />
+
           {/* Bio Section */}
           <div className="mb-8 flex-1" style={{
-            marginBottom: '24px'
+            marginBottom: '24px',
+            position: 'relative',
+            zIndex: 1
           }}>
             <h3 className="m-0 mb-4 font-heading font-bold text-card-foreground section-title" style={{
-              fontSize: '18px',
+              fontSize: '16px',
               marginBottom: '12px',
-              color: '#000000'
+              color: '#A67C52',
+              fontFamily: 'Poppins, sans-serif',
+              fontWeight: '600',
+              textTransform: 'uppercase',
+              letterSpacing: '0.02em'
             }}>
               About {currentProfile?.name || 'Unknown'}
             </h3>
             <div className="leading-relaxed text-card-foreground font-sans bio-text" style={{
-              fontSize: '16px',
-              lineHeight: '1.6',
-              fontFamily: 'Roboto, sans-serif',
-              color: '#000000'
+              fontSize: '15px',
+              lineHeight: '1.8',
+              fontFamily: 'Inter, sans-serif',
+              color: '#2E2E2E',
+              fontWeight: '400'
             }}>
               {currentProfile?.bio || 'No bio available'}
             </div>
           </div>
 
+          {/* Gradient Divider */}
+          <div style={{
+            height: '1px',
+            background: 'linear-gradient(90deg, transparent 0%, rgba(166, 124, 82, 0.15) 50%, transparent 100%)',
+            margin: '28px 0',
+            position: 'relative',
+            zIndex: 1
+          }} />
+
           {/* Partner Expectations Section */}
           <div className="mb-8 flex-1" style={{
-            marginBottom: '24px'
+            marginBottom: '24px',
+            position: 'relative',
+            zIndex: 1
           }}>
             <h3 className="m-0 mb-4 font-heading font-bold text-card-foreground section-title" style={{
-              fontSize: '18px',
+              fontSize: '16px',
               marginBottom: '12px',
-              color: '#000000'
+              color: '#A67C52',
+              fontFamily: 'Poppins, sans-serif',
+              fontWeight: '600',
+              textTransform: 'uppercase',
+              letterSpacing: '0.02em'
             }}>
               Partner Expectations
             </h3>
             <div className="leading-relaxed text-card-foreground font-sans expectations-text" style={{
-              fontSize: '16px',
-              lineHeight: '1.6',
-              fontFamily: 'Roboto, sans-serif',
-              color: '#000000'
+              fontSize: '15px',
+              lineHeight: '1.8',
+              fontFamily: 'Inter, sans-serif',
+              color: '#2E2E2E',
+              fontWeight: '400'
             }}>
               {currentProfile?.partner_expectations || 'No partner expectations available'}
             </div>
           </div>
 
+          {/* Gradient Divider */}
+          <div style={{
+            height: '1px',
+            background: 'linear-gradient(90deg, transparent 0%, rgba(166, 124, 82, 0.15) 50%, transparent 100%)',
+            margin: '28px 0',
+            position: 'relative',
+            zIndex: 1
+          }} />
+
           {/* Interests Section */}
-          <div className="flex-1">
+          <div className="flex-1" style={{
+            position: 'relative',
+            zIndex: 1
+          }}>
             <h3 className="m-0 mb-4 font-heading font-bold text-card-foreground section-title" style={{
-              fontSize: '18px',
+              fontSize: '16px',
               marginBottom: '20px',
-              color: '#000000'
+              color: '#A67C52',
+              fontFamily: 'Poppins, sans-serif',
+              fontWeight: '600',
+              textTransform: 'uppercase',
+              letterSpacing: '0.02em'
             }}>
               Interests
             </h3>
@@ -1683,17 +2023,19 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
                 width: '75px',
                 height: '75px',
                 borderRadius: '50%',
-                background: 'linear-gradient(135deg, #3dd1db 0%, #1a9ba3 30%, #0f6b73 70%, #0a4d54 100%)',
+                background: 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: 'white',
                 fontSize: '11px',
                 fontWeight: '600',
+                fontFamily: 'Inter, sans-serif',
                 textAlign: 'center',
                 padding: '6px',
-                boxShadow: '0 4px 12px rgba(26, 155, 163, 0.3)',
-                animation: 'float 4s ease-in-out infinite'
+                boxShadow: '0 8px 25px rgba(99, 102, 241, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1)',
+                animation: 'float 4s ease-in-out infinite',
+                border: '2px solid rgba(255, 255, 255, 0.2)'
               }}>
                 {currentProfile?.interest_1 || 'Reading'}
               </div>
@@ -1706,17 +2048,19 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
                 width: '70px',
                 height: '70px',
                 borderRadius: '50%',
-                background: 'linear-gradient(135deg, #3dd1db 0%, #1a9ba3 30%, #0f6b73 70%, #0a4d54 100%)',
+                background: 'linear-gradient(135deg, #EC4899 0%, #F472B6 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: 'white',
                 fontSize: '10px',
                 fontWeight: '600',
+                fontFamily: 'Inter, sans-serif',
                 textAlign: 'center',
                 padding: '6px',
-                boxShadow: '0 4px 12px rgba(26, 155, 163, 0.3)',
-                animation: 'float 8s ease-in-out infinite 1s'
+                boxShadow: '0 8px 25px rgba(236, 72, 153, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1)',
+                animation: 'float 8s ease-in-out infinite 1s',
+                border: '2px solid rgba(255, 255, 255, 0.2)'
               }}>
                 {currentProfile?.interest_2 || 'Travel'}
               </div>
@@ -1729,17 +2073,19 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
                 width: '75px',
                 height: '75px',
                 borderRadius: '50%',
-                background: 'linear-gradient(135deg, #3dd1db 0%, #1a9ba3 30%, #0f6b73 70%, #0a4d54 100%)',
+                background: 'linear-gradient(135deg, #10B981 0%, #34D399 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: 'white',
                 fontSize: '11px',
                 fontWeight: '600',
+                fontFamily: 'Inter, sans-serif',
                 textAlign: 'center',
                 padding: '6px',
-                boxShadow: '0 4px 12px rgba(26, 155, 163, 0.3)',
-                animation: 'float 7s ease-in-out infinite 2s'
+                boxShadow: '0 8px 25px rgba(16, 185, 129, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1)',
+                animation: 'float 7s ease-in-out infinite 2s',
+                border: '2px solid rgba(255, 255, 255, 0.2)'
               }}>
                 {currentProfile?.interest_3 || 'Music'}
               </div>
@@ -1752,17 +2098,19 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
                 width: '65px',
                 height: '65px',
                 borderRadius: '50%',
-                background: 'linear-gradient(135deg, #3dd1db 0%, #1a9ba3 30%, #0f6b73 70%, #0a4d54 100%)',
+                background: 'linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: 'white',
                 fontSize: '10px',
                 fontWeight: '600',
+                fontFamily: 'Inter, sans-serif',
                 textAlign: 'center',
                 padding: '5px',
-                boxShadow: '0 4px 12px rgba(26, 155, 163, 0.3)',
-                animation: 'float 9s ease-in-out infinite 0.5s'
+                boxShadow: '0 8px 25px rgba(245, 158, 11, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1)',
+                animation: 'float 9s ease-in-out infinite 0.5s',
+                border: '2px solid rgba(255, 255, 255, 0.2)'
               }}>
                 {currentProfile?.interest_4 || 'Cooking'}
               </div>
@@ -1775,17 +2123,19 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
                 width: '70px',
                 height: '70px',
                 borderRadius: '50%',
-                background: 'linear-gradient(135deg, #3dd1db 0%, #1a9ba3 30%, #0f6b73 70%, #0a4d54 100%)',
+                background: 'linear-gradient(135deg, #EF4444 0%, #F87171 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: 'white',
                 fontSize: '10px',
                 fontWeight: '600',
+                fontFamily: 'Inter, sans-serif',
                 textAlign: 'center',
                 padding: '6px',
-                boxShadow: '0 4px 12px rgba(26, 155, 163, 0.3)',
-                animation: 'float 6.5s ease-in-out infinite 1.5s'
+                boxShadow: '0 8px 25px rgba(239, 68, 68, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1)',
+                animation: 'float 6.5s ease-in-out infinite 1.5s',
+                border: '2px solid rgba(255, 255, 255, 0.2)'
               }}>
                 {currentProfile?.interest_5 || 'Photography'}
               </div>
@@ -1798,17 +2148,19 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
                 width: '65px',
                 height: '65px',
                 borderRadius: '50%',
-                background: 'linear-gradient(135deg, #3dd1db 0%, #1a9ba3 30%, #0f6b73 70%, #0a4d54 100%)',
+                background: 'linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: 'white',
                 fontSize: '10px',
                 fontWeight: '600',
+                fontFamily: 'Inter, sans-serif',
                 textAlign: 'center',
                 padding: '5px',
-                boxShadow: '0 4px 12px rgba(26, 155, 163, 0.3)',
-                animation: 'float 7.5s ease-in-out infinite 0.8s'
+                boxShadow: '0 8px 25px rgba(139, 92, 246, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1)',
+                animation: 'float 7.5s ease-in-out infinite 0.8s',
+                border: '2px solid rgba(255, 255, 255, 0.2)'
               }}>
                 {currentProfile?.interest_6 || 'Gaming'}
               </div>
@@ -1822,7 +2174,7 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
           justifyContent: 'center',
           gap: '24px',
           marginTop: '32px',
-          marginBottom: '120px', // Space for footer navigation
+          marginBottom: '100px', // Space for footer navigation
           padding: '0 20px'
         }}>
           <button
@@ -1837,21 +2189,59 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              opacity: isAnimating ? 0.5 : 1
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              opacity: isAnimating ? 0.5 : 1,
+              position: 'relative',
+              overflow: 'hidden',
+              transform: skipButtonRipple ? 'scale(1.1)' : 'scale(1)',
+              boxShadow: skipButtonRipple ? '0 8px 25px rgba(139, 69, 19, 0.4)' : 'none'
             }}
             onClick={handleSkip}
             disabled={isAnimating}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#8B4513'
-              e.currentTarget.style.color = 'white'
+              if (!isAnimating) {
+                e.currentTarget.style.background = '#8B4513'
+                e.currentTarget.style.color = 'white'
+                e.currentTarget.style.transform = 'scale(1.05)'
+                e.currentTarget.style.boxShadow = '0 4px 15px rgba(139, 69, 19, 0.3)'
+              }
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent'
-              e.currentTarget.style.color = '#8B4513'
+              if (!isAnimating) {
+                e.currentTarget.style.background = 'transparent'
+                e.currentTarget.style.color = '#8B4513'
+                e.currentTarget.style.transform = 'scale(1)'
+                e.currentTarget.style.boxShadow = 'none'
+              }
             }}
           >
-            <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+            {/* Ripple effect overlay */}
+            {skipButtonRipple && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  width: '0',
+                  height: '0',
+                  borderRadius: '50%',
+                  background: 'rgba(139, 69, 19, 0.3)',
+                  transform: 'translate(-50%, -50%)',
+                  animation: 'ripple 0.6s ease-out',
+                  pointerEvents: 'none'
+                }}
+              />
+            )}
+            <svg 
+              width="24" 
+              height="24" 
+              fill="currentColor" 
+              viewBox="0 0 24 24"
+              style={{
+                transform: skipButtonRipple ? 'rotate(90deg)' : 'rotate(0deg)',
+                transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+              }}
+            >
               <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
             </svg>
           </button>
@@ -1954,127 +2344,187 @@ function MatchesSection({ matches, onRefresh, onChatClick, onViewProfile }: {
   onViewProfile: (matchItem: MatchItem) => void;
 }) {
   return (
-    <div>
+    <div style={{ background: '#F7F3EC', minHeight: '100vh', padding: '16px' }}>
+      {/* Optional subtitle */}
+      <div style={{
+        fontSize: '12px',
+        color: '#5B6068',
+        marginBottom: '16px',
+        fontWeight: 500,
+        letterSpacing: '0.5px'
+      }}>
+        People you matched with
+      </div>
+
       {matches.length === 0 ? (
         <div className="responsive-empty" style={{
           textAlign: 'center', 
           padding: '40px 20px',
-          background: '#F5F1E8',
-          borderRadius: '16px',
-          border: '1px solid #107980',
-          margin: '20px 0'
+          background: '#FAF7F3',
+          borderRadius: '20px',
+          border: '1px solid #E6DFD4',
+          margin: '20px 0',
+          boxShadow: '0 6px 18px rgba(17,24,39,0.06)'
         }}>
-          <svg width="48" height="48" fill="#107980" viewBox="0 0 24 24" style={{marginBottom: 16}}>
+          <svg width="48" height="48" fill="#0F766E" viewBox="0 0 24 24" style={{marginBottom: 16}}>
             <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
           </svg>
           <h3 style={{
             margin: '0 0 8px 0', 
-            color: '#000000', 
+            color: '#1F2937', 
             fontSize: '18px', 
             fontWeight: 600
           }}>No matches yet</h3>
           <p style={{
-            color: '#000000', 
+            color: '#475569', 
             margin: 0, 
             fontSize: '14px', 
-            opacity: 0.8
+            lineHeight: 1.5
           }}>Start sending requests to find your perfect match!</p>
         </div>
       ) : (
-        <div className="responsive-matches" style={{display: 'grid', gap: '12px'}}>
+        <div className="matches-grid" style={{
+          maxWidth: '1200px',
+          margin: '0 auto'
+        }}>
           {matches.map(m => (
             <div key={m.id} className="match-item" style={{
-              padding: '16px',
-              background: '#F5F1E8',
-              borderBottom: '1px solid #107980',
-              transition: 'all 0.2s ease'
+              padding: '20px',
+              background: '#FAF7F3',
+              borderRadius: '20px',
+              border: '1px solid #E6DFD4',
+              boxShadow: '0 6px 18px rgba(17,24,39,0.06)',
+              transition: 'all 0.18s ease',
+              position: 'relative',
+              overflow: 'hidden'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#EDE8D0'
+              e.currentTarget.style.background = '#F8F4F0'
+              e.currentTarget.style.boxShadow = '0 10px 24px rgba(17,24,39,0.12)'
+              e.currentTarget.style.transform = 'translateY(-2px)'
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = '#F5F1E8'
-            }}>
+              e.currentTarget.style.background = '#FAF7F3'
+              e.currentTarget.style.boxShadow = '0 6px 18px rgba(17,24,39,0.06)'
+              e.currentTarget.style.transform = 'translateY(0px)'
+            }}
+            onFocus={(e) => {
+              e.currentTarget.style.outline = '2px solid #D6EFEA'
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.outline = 'none'
+            }}
+            tabIndex={0}>
+              {/* Micro gradient hairline */}
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: '2px',
+                background: 'linear-gradient(to right, #E6D9C7, transparent)'
+              }} />
+              
+              {/* Row 1: Avatar and Name/Meta */}
               <div style={{
                 display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center', 
-                gap: '16px'
+                alignItems: 'flex-start', 
+                gap: '16px',
+                marginBottom: '12px'
               }}>
                 <div className="match-avatar" style={{
                   width: 48,
                   height: 48,
                   borderRadius: '50%',
-                  background: '#107980',
+                  background: 'linear-gradient(135deg, #F1E6D8, white)',
+                  border: '1px solid #EDE6DC',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: 'white',
-                  fontSize: '16px',
+                  color: '#1F2937',
+                  fontSize: '18px',
                   fontWeight: 'bold',
-                  boxShadow: '0 2px 8px rgba(16, 121, 128, 0.2)'
+                  flexShrink: 0,
+                  transition: 'transform 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'scale(1.02)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'scale(1)'
                 }}>
                   {m.name.split(' ').map(word => word.charAt(0)).join('').toUpperCase().slice(0, 2) || '?'}
                 </div>
-                <div style={{flex: 1}}>
+                <div style={{flex: 1, minWidth: 0}}>
                   <h4 className="match-name" style={{
-                    margin: '0 0 6px 0', 
-                    fontSize: 16, 
-                    fontWeight: 700, 
-                    color: '#000000'
+                    margin: '0 0 4px 0', 
+                    fontSize: '18px', 
+                    fontWeight: 600, 
+                    color: '#1F2937',
+                    lineHeight: 1.4
                   }}>
                     {m.name || 'Match'}
                   </h4>
                   <div className="match-details" style={{
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: 12, 
-                    fontSize: '13px', 
-                    color: '#000000', 
-                    opacity: 0.8
+                    fontSize: '14px', 
+                    color: '#475569',
+                    lineHeight: 1.5
                   }}>
                     {m.location && (
-                      <span className="match-tag" style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        background: '#EDE8D0',
-                        padding: '4px 8px',
-                        borderRadius: '8px',
-                        fontSize: '12px'
-                      }}>
-                        <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-                        </svg>
+                      <span style={{ marginRight: '8px' }}>
                         {m.location}
                       </span>
                     )}
                     {m.instagram_handle && (
-                      <span className="match-tag" style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        background: '#EDE8D0',
-                        padding: '4px 8px',
-                        borderRadius: '8px',
-                        fontSize: '12px'
-                      }}>
-                        <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
-                        </svg>
-                        @{m.instagram_handle}
+                      <span style={{ color: '#5B6068' }}>
+                        · @{m.instagram_handle}
                       </span>
                     )}
                   </div>
                 </div>
+              </div>
+
+              {/* Divider */}
+              <div style={{
+                height: '1px',
+                background: '#EDE6DC',
+                margin: '12px 0'
+              }} />
+
+              {/* Row 2: Badges and Action Button */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-end',
+                gap: '12px'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  gap: '8px',
+                  flexWrap: 'wrap'
+                }}>
+                  <span style={{
+                    background: 'rgba(255, 255, 255, 0.7)',
+                    padding: '6px 10px',
+                    borderRadius: '20px',
+                    fontSize: '11px',
+                    fontWeight: 500,
+                    color: '#5B6068',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    lineHeight: 1.2
+                  }}>
+                    Verified
+                  </span>
+                </div>
                 <button 
                   className="view-profile-btn"
                   style={{
-                    background: '#107980',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    padding: '8px 12px',
+                    background: '#FAF7F3',
+                    color: '#0F766E',
+                    border: '1.5px solid #0F766E',
+                    borderRadius: '10px',
+                    padding: '8px 16px',
                     fontSize: '12px',
                     fontWeight: 600,
                     cursor: 'pointer',
@@ -2082,20 +2532,21 @@ function MatchesSection({ matches, onRefresh, onChatClick, onViewProfile }: {
                     alignItems: 'center',
                     gap: '6px',
                     transition: 'all 0.2s ease',
-                    minWidth: '120px',
-                    justifyContent: 'center'
+                    flexShrink: 0
                   }}
                   onClick={() => {
                     onViewProfile(m)
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#0d6b71'
+                    e.currentTarget.style.background = '#E6F2F1'
+                    e.currentTarget.style.borderColor = '#0B5C56'
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = '#107980'
+                    e.currentTarget.style.background = '#FAF7F3'
+                    e.currentTarget.style.borderColor = '#0F766E'
                   }}
                 >
-                  <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24" style={{flexShrink: 0}}>
+                  <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24" style={{flexShrink: 0}}>
                     <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
                   </svg>
                   <span style={{whiteSpace: 'nowrap'}}>View Profile</span>
@@ -2745,11 +3196,11 @@ function ChatSection({ matches, userId, selectedChatUser, setSelectedChatUser }:
   // If no chat user is selected, show the chat list (WhatsApp-like home page)
   if (!selectedChatUser) {
     return (
-      <div style={{
+      <div className="chat-section" style={{
         display: 'flex', 
         flexDirection: 'column',
         height: 'calc(100vh - 80px)', // Full viewport height minus header
-        background: '#F5F1E8',
+        background: '#F7F3EC',
         position: 'fixed',
         top: '80px', // Start below the main header
         left: '0',
@@ -2758,10 +3209,10 @@ function ChatSection({ matches, userId, selectedChatUser, setSelectedChatUser }:
         overflow: 'hidden'
       }}>
         {/* Chat Header */}
-        <div style={{
-          background: '#EDE8D0',
-          padding: '12px 16px',
-          borderBottom: '1px solid #107980',
+        <div className="chat-header" style={{
+          background: '#FAF7F3',
+          padding: '16px 20px',
+          borderBottom: '1px solid #E6DFD4',
           display: 'flex',
           alignItems: 'center',
           gap: 12,
@@ -2773,7 +3224,7 @@ function ChatSection({ matches, userId, selectedChatUser, setSelectedChatUser }:
             width: 32,
             height: 32,
             borderRadius: '50%',
-            background: '#107980',
+            background: '#0F766E',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -2786,103 +3237,106 @@ function ChatSection({ matches, userId, selectedChatUser, setSelectedChatUser }:
             </svg>
           </div>
           <div>
-            <h3 style={{margin: 0, fontSize: 16, fontWeight: 600, color: '#8B4513'}}>Chats</h3>
-            <p style={{margin: '2px 0 0 0', color: '#8B4513', fontSize: '12px', opacity: 0.8}}>
+            <h3 style={{margin: 0, fontSize: 18, fontWeight: 600, color: '#1F2937'}}>Chats</h3>
+            <p style={{margin: '2px 0 0 0', color: '#7C7C7C', fontSize: '13px'}}>
               {matches.length} {matches.length === 1 ? 'match' : 'matches'}
             </p>
           </div>
         </div>
 
         {/* Chat List */}
-        <div style={{flex: 1, overflow: 'auto'}}>
+        <div className="chat-list" style={{flex: 1, overflow: 'auto'}}>
           {matches.length === 0 ? (
-            <div className="responsive-empty" style={{
+            <div className="responsive-empty chat-empty" style={{
               textAlign: 'center', 
-              color: '#8B4513', 
-              padding: '40px 20px',
+              color: '#5B6068', 
+              padding: '48px 24px',
               display: 'flex', 
               alignItems: 'center', 
               justifyContent: 'center',
               flexDirection: 'column',
-              background: '#F5F1E8',
-              borderRadius: '16px',
-              border: '1px solid #107980',
-              margin: '20px'
+              background: '#FAF7F3',
+              borderRadius: '14px',
+              border: '1px solid #EDE6DC',
+              margin: '20px',
+              boxShadow: '0 2px 8px rgba(17, 24, 39, 0.05)'
             }}>
-              <svg width="48" height="48" fill="#107980" viewBox="0 0 24 24" style={{marginBottom: 16}}>
+              <svg width="48" height="48" fill="#0F766E" viewBox="0 0 24 24" style={{marginBottom: 16}}>
                 <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
               </svg>
-              <div style={{fontSize: '18px', fontWeight: 600, color: '#000000'}}>No matches yet</div>
-              <div style={{fontSize: '14px', marginTop: 4, opacity: 0.8, color: '#000000'}}>Start matching to begin chatting!</div>
+              <div style={{fontSize: '18px', fontWeight: 600, color: '#1F2937', marginBottom: '8px'}}>No matches yet</div>
+              <div style={{fontSize: '14px', color: '#5B6068'}}>Start matching to begin chatting!</div>
             </div>
           ) : (
-            <div className="responsive-matches" style={{padding: '8px'}}>
+            <div className="responsive-matches" style={{padding: '16px'}}>
               {matches.map(match => (
                 <div 
                   key={match.id}
-                  className="match-item"
+                  className="match-item chat-item"
                   onClick={() => setSelectedChatUser(match.other_user_id)}
                   style={{
-                    background: '#F5F1E8',
+                    background: '#FAF7F3',
                     padding: '16px',
                     marginBottom: '8px',
-                    borderRadius: '12px',
+                    borderRadius: '14px',
                     cursor: 'pointer',
                     transition: 'all 0.2s ease',
-                    border: '1px solid #107980',
+                    border: '1px solid #EDE6DC',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 12
+                    gap: 16,
+                    boxShadow: 'none',
+                    minHeight: '72px'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#EDE8D0'
+                    e.currentTarget.style.background = '#FAF7F3'
+                    e.currentTarget.style.transform = 'translateY(-1px)'
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(17, 24, 39, 0.08)'
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = '#F5F1E8'
+                    e.currentTarget.style.background = '#FAF7F3'
+                    e.currentTarget.style.transform = 'translateY(0)'
+                    e.currentTarget.style.boxShadow = 'none'
                   }}
                 >
-                  <div className="match-avatar" style={{
-                    width: 40,
-                    height: 40,
+                  {/* Left: Avatar */}
+                  <div className="match-avatar chat-avatar" style={{
+                    width: 44,
+                    height: 44,
                     borderRadius: '50%',
-                    background: '#107980',
+                    background: '#0F766E',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: 'white',
                     fontSize: '16px',
                     fontWeight: 'bold',
-                    boxShadow: '0 2px 8px rgba(16, 121, 128, 0.2)'
+                    flexShrink: 0
                   }}>
                     {match.name?.charAt(0).toUpperCase() || '?'}
                   </div>
-                  <div style={{flex: 1}}>
-                    <h4 className="match-name" style={{
-                      margin: '0 0 4px 0',
+                  
+                  {/* Middle: Name and Meta */}
+                  <div style={{flex: 1, minWidth: 0}}>
+                    <h4 className="match-name chat-name" style={{
+                      margin: '0 0 3px 0',
                       fontSize: 16,
-                      fontWeight: 700,
-                      color: '#000000'
+                      fontWeight: 600,
+                      color: '#1F2937',
+                      lineHeight: 1.2
                     }}>
                       {match.name || 'Your Match'}
                     </h4>
-                    <div className="match-details" style={{
+                    <div className="match-details chat-details" style={{
                       display: 'flex',
                       alignItems: 'center',
                       gap: 8,
-                      fontSize: '12px',
-                      color: '#000000',
-                      opacity: 0.8
+                      fontSize: '13px',
+                      color: '#5B6068',
+                      flexWrap: 'wrap'
                     }}>
                       {match.location && (
-                        <span className="match-tag" style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          background: '#EDE8D0',
-                          padding: '2px 6px',
-                          borderRadius: '6px',
-                          fontSize: '10px'
-                        }}>
+                        <span style={{display: 'flex', alignItems: 'center', gap: '4px'}}>
                           <svg width="10" height="10" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
                           </svg>
@@ -2890,18 +3344,10 @@ function ChatSection({ matches, userId, selectedChatUser, setSelectedChatUser }:
                         </span>
                       )}
                       {match.location && match.instagram_handle && (
-                        <span style={{color: '#000000', opacity: 0.6}}>•</span>
+                        <span style={{color: '#5B6068', opacity: 0.6}}>•</span>
                       )}
                       {match.instagram_handle && (
-                        <span className="match-tag" style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          background: '#EDE8D0',
-                          padding: '2px 6px',
-                          borderRadius: '6px',
-                          fontSize: '10px'
-                        }}>
+                        <span style={{display: 'flex', alignItems: 'center', gap: '4px'}}>
                           <svg width="10" height="10" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
                           </svg>
@@ -2910,29 +3356,37 @@ function ChatSection({ matches, userId, selectedChatUser, setSelectedChatUser }:
                       )}
                     </div>
                   </div>
+                  {/* Right: Chat Button */}
                   <button
-                    className="view-profile-btn"
-                    onClick={() => setSelectedChatUser(match.other_user_id)}
+                    className="view-profile-btn chat-button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setSelectedChatUser(match.other_user_id)
+                    }}
                     style={{
-                      background: '#107980',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      padding: '8px 12px',
-                      fontSize: '12px',
+                      background: 'transparent',
+                      color: '#0F766E',
+                      border: '1.5px solid #0F766E',
+                      borderRadius: '10px',
+                      padding: '8px 14px',
+                      fontSize: '13px',
                       fontWeight: 600,
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '6px',
-                      transition: 'all 0.2s ease'
+                      transition: 'all 0.2s ease',
+                      flexShrink: 0,
+                      minHeight: '36px'
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.background = '#0d6b71'
+                      e.currentTarget.style.background = '#E6F2F1'
+                      e.currentTarget.style.borderColor = '#0F766E'
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.background = '#107980'
+                      e.currentTarget.style.background = 'transparent'
+                      e.currentTarget.style.borderColor = '#0F766E'
                     }}
                   >
                     <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
@@ -3166,84 +3620,158 @@ function ProfileDisplay({ me }: { me: any }) {
   return (
     <div className="responsive-dating-card" style={{
       padding: '32px',
-      background: '#F5F1E8',
-      borderRadius: '24px',
-      border: '1px solid #107980'
+      background: 'linear-gradient(135deg, #FAF7F3 0%, #FFFFFF 100%)',
+      borderRadius: '32px',
+      border: '1px solid rgba(166, 124, 82, 0.15)',
+      boxShadow: '0 25px 50px -12px rgba(166, 124, 82, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.05)',
+      position: 'relative',
+      overflow: 'hidden'
     }}>
+      {/* Background decorative elements */}
+      <div style={{
+        position: 'absolute',
+        top: '-50px',
+        right: '-50px',
+        width: '200px',
+        height: '200px',
+        background: 'radial-gradient(circle, rgba(255, 182, 193, 0.08) 0%, transparent 70%)',
+        borderRadius: '50%',
+        zIndex: 0,
+        filter: 'blur(20px)'
+      }} />
+      <div style={{
+        position: 'absolute',
+        bottom: '-30px',
+        left: '-30px',
+        width: '150px',
+        height: '150px',
+        background: 'radial-gradient(circle, rgba(255, 218, 185, 0.06) 0%, transparent 70%)',
+        borderRadius: '50%',
+        zIndex: 0,
+        filter: 'blur(15px)'
+      }} />
+      <div style={{
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: '300px',
+        height: '300px',
+        background: 'radial-gradient(circle, rgba(166, 124, 82, 0.03) 0%, transparent 70%)',
+        borderRadius: '50%',
+        zIndex: 0,
+        filter: 'blur(25px)'
+      }} />
       {/* Profile Header */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '16px',
+        gap: '20px',
         marginBottom: '32px',
-        paddingBottom: '16px',
-        borderBottom: '1px solid #107980'
+        position: 'relative',
+        zIndex: 1
       }}>
-        <div className="avatar" style={{
-          width: 80,
-          height: 80,
-          borderRadius: '50%',
-          background: '#107980',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'white',
-          fontSize: '32px',
-          fontWeight: 'bold',
-          boxShadow: '0 4px 12px rgba(16, 121, 128, 0.2)'
-        }}>
-          {me.name?.charAt(0).toUpperCase() || 'U'}
+        <div style={{ position: 'relative' }}>
+          {/* Blurred background shape */}
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '100px',
+            height: '100px',
+            background: 'radial-gradient(circle, rgba(255, 182, 193, 0.2) 0%, rgba(255, 218, 185, 0.1) 100%)',
+            borderRadius: '50%',
+            filter: 'blur(15px)',
+            zIndex: 0
+          }} />
+          <div className="avatar" style={{
+            width: 80,
+            height: 80,
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, #FFB6C1 0%, #FFDAB9 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#A67C52',
+            fontSize: '32px',
+            fontWeight: '700',
+            fontFamily: 'Poppins, sans-serif',
+            boxShadow: '0 8px 25px rgba(255, 182, 193, 0.3), 0 0 0 3px rgba(255, 255, 255, 0.8)',
+            border: '2px solid rgba(166, 124, 82, 0.2)',
+            position: 'relative',
+            zIndex: 1
+          }}>
+            {me.name?.charAt(0).toUpperCase() || 'U'}
+          </div>
         </div>
         <div>
-          <h2 className="name" style={{margin: '0 0 8px 0', fontSize: '24px', fontWeight: 600, color: '#000000'}}>
+          <h2 className="name" style={{
+            margin: '0 0 8px 0', 
+            fontSize: '28px', 
+            fontWeight: '700', 
+            color: '#2E2E2E',
+            fontFamily: 'Poppins, sans-serif',
+            letterSpacing: '-0.025em'
+          }}>
             {me.name || 'User'}
           </h2>
           <div style={{
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            color: '#000000',
-            fontSize: '12px',
-            opacity: 0.8
+            flexWrap: 'wrap'
           }}>
             <span style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '4px',
-              background: '#EDE8D0',
-              padding: '2px 6px',
-              borderRadius: '6px'
+              gap: '6px',
+              background: 'rgba(135, 206, 235, 0.3)',
+              padding: '8px 12px',
+              borderRadius: '20px',
+              color: '#2E2E2E',
+              fontFamily: 'Inter, sans-serif',
+              fontWeight: '500',
+              fontSize: '13px',
+              border: '1px solid rgba(135, 206, 235, 0.2)',
+              backdropFilter: 'blur(10px)',
+              boxShadow: '0 2px 8px rgba(135, 206, 235, 0.15)'
             }}>
-              <svg width="10" height="10" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-              </svg>
               {me.gender || 'Not specified'}
             </span>
             <span style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '4px',
-              background: '#EDE8D0',
-              padding: '2px 6px',
-              borderRadius: '6px'
+              gap: '6px',
+              background: 'rgba(255, 182, 193, 0.3)',
+              padding: '8px 12px',
+              borderRadius: '20px',
+              color: '#2E2E2E',
+              fontFamily: 'Inter, sans-serif',
+              fontWeight: '500',
+              fontSize: '13px',
+              border: '1px solid rgba(255, 182, 193, 0.2)',
+              backdropFilter: 'blur(10px)',
+              boxShadow: '0 2px 8px rgba(255, 182, 193, 0.15)'
             }}>
-              <svg width="10" height="10" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-              </svg>
               {me.relationship_status || 'Not specified'}
             </span>
             {me.location && (
               <span style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '4px',
-                background: '#EDE8D0',
-                padding: '2px 6px',
-                borderRadius: '6px'
+                gap: '6px',
+                background: 'rgba(188, 227, 196, 0.3)',
+                padding: '8px 12px',
+                borderRadius: '20px',
+                color: '#2E2E2E',
+                fontFamily: 'Inter, sans-serif',
+                fontWeight: '500',
+                fontSize: '13px',
+                border: '1px solid rgba(188, 227, 196, 0.2)',
+                backdropFilter: 'blur(10px)',
+                boxShadow: '0 2px 8px rgba(188, 227, 196, 0.15)'
               }}>
-                <svg width="10" height="10" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-                </svg>
                 {me.location}
               </span>
             )}
@@ -3251,78 +3779,113 @@ function ProfileDisplay({ me }: { me: any }) {
         </div>
       </div>
 
-            {/* Bio Section */}
-      <div style={{marginBottom: '32px'}}>
+      {/* Gradient Divider */}
+      <div style={{
+        height: '1px',
+        background: 'linear-gradient(90deg, transparent 0%, rgba(30, 41, 59, 0.1) 50%, transparent 100%)',
+        margin: '24px 0',
+        position: 'relative',
+        zIndex: 1
+      }} />
+
+      {/* Bio Section */}
+      <div style={{
+        marginBottom: '32px',
+        position: 'relative',
+        zIndex: 1
+      }}>
         <h3 className="section-title" style={{
           margin: '0 0 12px 0',
-          fontSize: '18px',
-          fontWeight: 600,
-          color: '#000000',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px'
+          fontSize: '16px',
+          fontWeight: '600',
+          color: '#A67C52',
+          fontFamily: 'Poppins, sans-serif',
+          textTransform: 'uppercase',
+          letterSpacing: '0.02em'
         }}>
-          <svg width="18" height="18" fill="#107980" viewBox="0 0 24 24">
-            <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
-          </svg>
           About Me
         </h3>
         <div className="bio-text" style={{
-          padding: '16px',
-          lineHeight: '1.6',
-          color: '#000000',
-          fontSize: '14px',
-          background: '#EDE8D0',
-          borderRadius: '12px',
-          border: '1px solid #107980'
+          padding: '20px',
+          lineHeight: '1.8',
+          color: '#2E2E2E',
+          fontSize: '15px',
+          fontFamily: 'Inter, sans-serif',
+          fontWeight: '400',
+          background: 'rgba(255, 255, 255, 0.7)',
+          borderRadius: '16px',
+          border: '1px solid rgba(166, 124, 82, 0.1)',
+          boxShadow: '0 4px 6px rgba(166, 124, 82, 0.05)'
         }}>
           {me.bio || 'No bio available'}
         </div>
       </div>
 
+      {/* Gradient Divider */}
+      <div style={{
+        height: '1px',
+        background: 'linear-gradient(90deg, transparent 0%, rgba(30, 41, 59, 0.1) 50%, transparent 100%)',
+        margin: '24px 0',
+        position: 'relative',
+        zIndex: 1
+      }} />
+
       {/* Partner Expectations Section */}
-      <div style={{marginBottom: '32px'}}>
+      <div style={{
+        marginBottom: '32px',
+        position: 'relative',
+        zIndex: 1
+      }}>
         <h3 className="section-title" style={{
           margin: '0 0 12px 0',
-          fontSize: '18px',
-          fontWeight: 600,
-          color: '#000000',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px'
+          fontSize: '16px',
+          fontWeight: '600',
+          color: '#A67C52',
+          fontFamily: 'Poppins, sans-serif',
+          textTransform: 'uppercase',
+          letterSpacing: '0.02em'
         }}>
-          <svg width="18" height="18" fill="#107980" viewBox="0 0 24 24">
-            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-          </svg>
           Partner Expectations
         </h3>
         <div className="partner-expectations-text" style={{
-          padding: '16px',
-          lineHeight: '1.6',
-          color: '#000000',
-          fontSize: '14px',
-          background: '#EDE8D0',
-          borderRadius: '12px',
-          border: '1px solid #107980'
+          padding: '20px',
+          lineHeight: '1.8',
+          color: '#2E2E2E',
+          fontSize: '15px',
+          fontFamily: 'Inter, sans-serif',
+          fontWeight: '400',
+          background: 'rgba(255, 255, 255, 0.7)',
+          borderRadius: '16px',
+          border: '1px solid rgba(166, 124, 82, 0.1)',
+          boxShadow: '0 4px 6px rgba(166, 124, 82, 0.05)'
         }}>
           {me.partner_expectations || 'No partner expectations specified'}
         </div>
       </div>
 
-            {/* Interests Section */}
-      <div>
+      {/* Gradient Divider */}
+      <div style={{
+        height: '1px',
+        background: 'linear-gradient(90deg, transparent 0%, rgba(30, 41, 59, 0.1) 50%, transparent 100%)',
+        margin: '24px 0',
+        position: 'relative',
+        zIndex: 1
+      }} />
+
+      {/* Interests Section */}
+      <div style={{
+        position: 'relative',
+        zIndex: 1
+      }}>
         <h3 className="section-title" style={{
           margin: '0 0 16px 0',
-          fontSize: '18px',
-          fontWeight: 600,
-          color: '#000000',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px'
+          fontSize: '16px',
+          fontWeight: '600',
+          color: '#A67C52',
+          fontFamily: 'Poppins, sans-serif',
+          textTransform: 'uppercase',
+          letterSpacing: '0.02em'
         }}>
-          <svg width="18" height="18" fill="#107980" viewBox="0 0 24 24">
-            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
-          </svg>
           My Interests
         </h3>
         <div style={{display: 'grid', gap: '16px'}}>
@@ -3335,19 +3898,22 @@ function ProfileDisplay({ me }: { me: any }) {
           }}>
             {me.interest_1 && (
               <div className="interest-item" style={{
-                padding: '12px',
-                background: '#EDE8D0',
-                borderRadius: '12px',
-                border: '1px solid #107980',
-                textAlign: 'center'
+                padding: '16px',
+                background: 'rgba(255, 255, 255, 0.7)',
+                borderRadius: '16px',
+                border: '1px solid rgba(30, 41, 59, 0.1)',
+                textAlign: 'center',
+                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)'
               }}>
                 <span className="interest-tag" style={{
-                  background: '#107980',
+                  background: 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)',
                   color: 'white',
-                  padding: '6px 12px',
-                  borderRadius: '8px',
-                  fontSize: '12px',
-                  fontWeight: 600
+                  padding: '8px 16px',
+                  borderRadius: '20px',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  fontFamily: 'Inter, sans-serif',
+                  boxShadow: '0 2px 4px rgba(99, 102, 241, 0.2)'
                 }}>
                   {me.interest_1}
                 </span>
@@ -3356,19 +3922,22 @@ function ProfileDisplay({ me }: { me: any }) {
 
             {me.interest_2 && (
               <div className="interest-item" style={{
-                padding: '12px',
-                background: '#EDE8D0',
-                borderRadius: '12px',
-                border: '1px solid #107980',
-                textAlign: 'center'
+                padding: '16px',
+                background: 'rgba(255, 255, 255, 0.7)',
+                borderRadius: '16px',
+                border: '1px solid rgba(30, 41, 59, 0.1)',
+                textAlign: 'center',
+                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)'
               }}>
                 <span className="interest-tag" style={{
-                  background: '#107980',
+                  background: 'linear-gradient(135deg, #EC4899 0%, #F472B6 100%)',
                   color: 'white',
-                  padding: '6px 12px',
-                  borderRadius: '8px',
-                  fontSize: '12px',
-                  fontWeight: 600
+                  padding: '8px 16px',
+                  borderRadius: '20px',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  fontFamily: 'Inter, sans-serif',
+                  boxShadow: '0 2px 4px rgba(236, 72, 153, 0.2)'
                 }}>
                   {me.interest_2}
                 </span>
@@ -3377,19 +3946,22 @@ function ProfileDisplay({ me }: { me: any }) {
 
             {me.interest_3 && (
               <div className="interest-item" style={{
-                padding: '12px',
-                background: '#EDE8D0',
-                borderRadius: '12px',
-                border: '1px solid #107980',
-                textAlign: 'center'
+                padding: '16px',
+                background: 'rgba(255, 255, 255, 0.7)',
+                borderRadius: '16px',
+                border: '1px solid rgba(30, 41, 59, 0.1)',
+                textAlign: 'center',
+                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)'
               }}>
                 <span className="interest-tag" style={{
-                  background: '#107980',
+                  background: 'linear-gradient(135deg, #10B981 0%, #34D399 100%)',
                   color: 'white',
-                  padding: '6px 12px',
-                  borderRadius: '8px',
-                  fontSize: '12px',
-                  fontWeight: 600
+                  padding: '8px 16px',
+                  borderRadius: '20px',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  fontFamily: 'Inter, sans-serif',
+                  boxShadow: '0 2px 4px rgba(16, 185, 129, 0.2)'
                 }}>
                   {me.interest_3}
                 </span>
@@ -3398,19 +3970,22 @@ function ProfileDisplay({ me }: { me: any }) {
 
             {me.interest_4 && (
               <div className="interest-item" style={{
-                padding: '12px',
-                background: '#EDE8D0',
-                borderRadius: '12px',
-                border: '1px solid #107980',
-                textAlign: 'center'
+                padding: '16px',
+                background: 'rgba(255, 255, 255, 0.7)',
+                borderRadius: '16px',
+                border: '1px solid rgba(30, 41, 59, 0.1)',
+                textAlign: 'center',
+                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)'
               }}>
                 <span className="interest-tag" style={{
-                  background: '#107980',
+                  background: 'linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%)',
                   color: 'white',
-                  padding: '6px 12px',
-                  borderRadius: '8px',
-                  fontSize: '12px',
-                  fontWeight: 600
+                  padding: '8px 16px',
+                  borderRadius: '20px',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  fontFamily: 'Inter, sans-serif',
+                  boxShadow: '0 2px 4px rgba(245, 158, 11, 0.2)'
                 }}>
                   {me.interest_4}
                 </span>
@@ -3419,19 +3994,22 @@ function ProfileDisplay({ me }: { me: any }) {
 
             {me.interest_5 && (
               <div className="interest-item" style={{
-                padding: '12px',
-                background: '#EDE8D0',
-                borderRadius: '12px',
-                border: '1px solid #107980',
-                textAlign: 'center'
+                padding: '16px',
+                background: 'rgba(255, 255, 255, 0.7)',
+                borderRadius: '16px',
+                border: '1px solid rgba(30, 41, 59, 0.1)',
+                textAlign: 'center',
+                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)'
               }}>
                 <span className="interest-tag" style={{
-                  background: '#107980',
+                  background: 'linear-gradient(135deg, #EF4444 0%, #F87171 100%)',
                   color: 'white',
-                  padding: '6px 12px',
-                  borderRadius: '8px',
-                  fontSize: '12px',
-                  fontWeight: 600
+                  padding: '8px 16px',
+                  borderRadius: '20px',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  fontFamily: 'Inter, sans-serif',
+                  boxShadow: '0 2px 4px rgba(239, 68, 68, 0.2)'
                 }}>
                   {me.interest_5}
                 </span>
@@ -3440,19 +4018,22 @@ function ProfileDisplay({ me }: { me: any }) {
 
             {me.interest_6 && (
               <div className="interest-item" style={{
-                padding: '12px',
-                background: '#EDE8D0',
-                borderRadius: '12px',
-                border: '1px solid #107980',
-                textAlign: 'center'
+                padding: '16px',
+                background: 'rgba(255, 255, 255, 0.7)',
+                borderRadius: '16px',
+                border: '1px solid rgba(30, 41, 59, 0.1)',
+                textAlign: 'center',
+                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)'
               }}>
                 <span className="interest-tag" style={{
-                  background: '#107980',
+                  background: 'linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%)',
                   color: 'white',
-                  padding: '6px 12px',
-                  borderRadius: '8px',
-                  fontSize: '12px',
-                  fontWeight: 600
+                  padding: '8px 16px',
+                  borderRadius: '20px',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  fontFamily: 'Inter, sans-serif',
+                  boxShadow: '0 2px 4px rgba(139, 92, 246, 0.2)'
                 }}>
                   {me.interest_6}
                 </span>
