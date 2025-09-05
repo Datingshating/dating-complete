@@ -128,157 +128,171 @@ export function Register(){
 
   if(status==='submitted'){
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-5">
-        <div className="bg-card rounded-3xl p-8 md:p-12 max-w-lg w-full shadow-xl animate-fade-in text-center">
-          <h2 className="font-heading text-3xl md:text-4xl font-black text-card-foreground mb-6">
-            Thanks! 🎉
-          </h2>
-          <p className="text-muted-foreground mb-8 leading-relaxed">
-            Hold on — we will review and verify your profile. After approval, you will receive a unique ID and password on WhatsApp.
-          </p>
-          <Link 
-            to="/" 
-            className="inline-block bg-primary text-primary-foreground font-bold px-8 py-4 rounded-lg text-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
-          >
-            Back home
-          </Link>
+      <div className="min-h-screen" style={{backgroundColor: 'var(--page-background)', padding: '16px'}}>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="form-card animate-fade-in text-center">
+            <h2 className="font-heading text-2xl md:text-3xl font-semibold mb-4" style={{color: 'var(--primary-text)'}}>
+              Thanks! 🎉
+            </h2>
+            <p className="mb-8 leading-relaxed" style={{color: 'var(--secondary-text)'}}>
+              Hold on — we will review and verify your profile. After approval, you will receive a unique ID and password on WhatsApp.
+            </p>
+            <Link 
+              to="/" 
+              className="primary-button inline-block"
+            >
+              Back home
+            </Link>
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-background p-5 flex items-center justify-center">
-      <div className="bg-card rounded-3xl p-8 md:p-12 max-w-4xl w-full shadow-xl animate-slide-up">
-        <h2 className="font-heading text-3xl md:text-4xl font-black text-card-foreground mb-10 text-center">
-          Tell us about you
-        </h2>
-        <form onSubmit={submit} className="space-y-6">
-          {/* Personal Information - Two columns on PC, single column on phone */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Input label="Name" value={form.name} onChange={v=>setForm({...form,name:v})} required />
-            <Select label="Gender" value={form.gender} onChange={v=>setForm({...form,gender:v})} options={['male','female','trans']} required />
-            <Input label="Date of birth" type="date" value={form.dateOfBirth} onChange={v=>setForm({...form,dateOfBirth:v})} required />
-            <Input label="WhatsApp number" value={form.whatsappNumber} onChange={v=>setForm({...form,whatsappNumber:v})} required />
-            <Input label="Instagram handle" value={form.instagramHandle} onChange={v=>setForm({...form,instagramHandle:v})} required />
-            <LocationSelect 
-              label="Location" 
-              value={form.location} 
-              onChange={v=>setForm({...form,location:v})} 
-              customValue={form.customLocation}
-              onCustomChange={v=>setForm({...form,customLocation:v})}
-              options={cities}
-              required 
-            />
+    <div className="min-h-screen" style={{backgroundColor: 'var(--page-background)', padding: '16px'}}>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="form-card animate-slide-up">
+          <div className="text-center mb-8">
+            <h1 className="font-heading text-2xl md:text-3xl font-semibold mb-2" style={{color: 'var(--primary-text)'}}>
+              Tell us about you
+            </h1>
+            <p className="text-xs md:text-sm" style={{color: 'var(--secondary-text)'}}>
+              It takes ~2 minutes.
+            </p>
           </div>
-          
-          {/* Full width fields */}
-          <Select label="Relationship status" value={form.relationshipStatus} onChange={v=>setForm({...form,relationshipStatus:v})} options={['single','in a relationship','recent breakup','its complicated','divorced']} required full />
-          <Text label="Bio (minimum 25 words, don't use AI)" value={form.bio} onChange={v=>setForm({...form,bio:v})} rows={6} required full />
-          <Text label="What do you expect in your partner? (minimum 25 words)" value={form.partnerExpectations} onChange={v=>setForm({...form,partnerExpectations:v})} rows={6} required full />
-          
-          {/* Interests Selection */}
-          <div className="md:col-span-2">
-            <div className="mb-4">
-              <span className="text-sm font-bold text-card-foreground mb-2 block">
-                Select 6 Interests * ({selectedInterests.length}/6)
-              </span>
+          <form id="registration-form" onSubmit={submit} className="space-y-6">
+            {/* Basics Section */}
+            <div>
+              <h3 className="form-section-header">Basics</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Input label="Name" value={form.name} onChange={v=>setForm({...form,name:v})} required />
+                <Select label="Gender" value={form.gender} onChange={v=>setForm({...form,gender:v})} options={['male','female','trans']} required />
+                <Input label="Date of birth" type="date" value={form.dateOfBirth} onChange={v=>setForm({...form,dateOfBirth:v})} required />
+                <Input label="WhatsApp number" value={form.whatsappNumber} onChange={v=>setForm({...form,whatsappNumber:v})} required />
+                <Input label="Instagram handle" value={form.instagramHandle} onChange={v=>setForm({...form,instagramHandle:v})} required />
+                <LocationSelect 
+                  label="Location" 
+                  value={form.location} 
+                  onChange={v=>setForm({...form,location:v})} 
+                  customValue={form.customLocation}
+                  onCustomChange={v=>setForm({...form,customLocation:v})}
+                  options={cities}
+                  required 
+                />
+              </div>
+            </div>
+            
+            {/* About you Section */}
+            <div>
+              <h3 className="form-section-header">About you</h3>
+              <div className="space-y-6">
+                <Select label="Relationship status" value={form.relationshipStatus} onChange={v=>setForm({...form,relationshipStatus:v})} options={['single','in a relationship','recent breakup','its complicated','divorced']} required full />
+                <Text label="Bio (minimum 25 words, don't use AI)" value={form.bio} onChange={v=>setForm({...form,bio:v})} rows={6} required full />
+                <Text label="What do you expect in your partner? (minimum 25 words)" value={form.partnerExpectations} onChange={v=>setForm({...form,partnerExpectations:v})} rows={6} required full />
+              </div>
+            </div>
+            
+            {/* Interests Section */}
+            <div>
+              <div className="mb-4">
+                <h3 className="text-base font-semibold mb-2" style={{color: 'var(--primary-text)'}}>
+                  Interests
+                </h3>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-sm" style={{color: 'var(--helper-text)'}}>
+                    ({selectedInterests.length}/6)
+                  </span>
+                </div>
+                <div className="h-px mb-4" style={{backgroundColor: 'var(--dividers)'}}></div>
+              </div>
+              
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {interests.map((interest) => (
+                  <button
+                    key={interest}
+                    type="button"
+                    onClick={() => handleInterestToggle(interest)}
+                    className={`interest-chip ${
+                      selectedInterests.includes(interest) ? 'selected' : ''
+                    } ${selectedInterests.length >= 6 && !selectedInterests.includes(interest) ? 'disabled' : ''}`}
+                    disabled={selectedInterests.length >= 6 && !selectedInterests.includes(interest)}
+                  >
+                    {interest}
+                  </button>
+                ))}
+              </div>
+              
               {selectedInterests.length === 6 && (
-                <p className="text-sm text-green-600 font-medium mb-2">
-                  ✓ Perfect! You've selected 6 interests
+                <p className="text-xs mt-3" style={{color: 'var(--helper-text)'}}>
+                  You've selected 6. Tap again to deselect.
                 </p>
               )}
             </div>
             
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-              {interests.map((interest) => (
-                <button
-                  key={interest}
-                  type="button"
-                  onClick={() => handleInterestToggle(interest)}
-                  className={`p-3 rounded-lg text-sm font-medium transition-all duration-200 border-2 ${
-                    selectedInterests.includes(interest)
-                      ? 'bg-primary text-primary-foreground border-primary shadow-lg scale-105'
-                      : 'bg-background text-card-foreground border-border hover:border-primary hover:bg-primary/5'
-                  } ${selectedInterests.length >= 6 && !selectedInterests.includes(interest) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                  disabled={selectedInterests.length >= 6 && !selectedInterests.includes(interest)}
-                >
-                  {interest}
-                </button>
-              ))}
-            </div>
-            
-            {selectedInterests.length > 0 && (
-              <div className="mt-4 p-4 bg-primary/10 rounded-lg border border-primary/20">
-                <h4 className="font-bold text-card-foreground mb-2">Selected Interests:</h4>
-                <div className="flex flex-wrap gap-2">
-                  {selectedInterests.map((interest, index) => (
-                    <span
-                      key={interest}
-                      className="inline-flex items-center gap-1 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium"
-                    >
-                      {interest}
-                      <button
-                        type="button"
-                        onClick={() => handleInterestToggle(interest)}
-                        className="ml-1 hover:bg-primary-foreground/20 rounded-full w-4 h-4 flex items-center justify-center text-xs"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ))}
-                </div>
+            {/* Review & Submit Section */}
+            <div>
+              <div className="form-divider"></div>
+              <h3 className="form-section-header">Review & submit</h3>
+              
+              {/* Terms and Conditions Checkbox */}
+              <div className="flex items-start gap-3 p-4 rounded-lg mb-10" style={{backgroundColor: 'var(--muted)', border: '1px solid var(--hairline-borders)'}}>
+                <input
+                  type="checkbox"
+                  id="terms-checkbox"
+                  checked={acceptedTerms}
+                  onChange={(e) => setAcceptedTerms(e.target.checked)}
+                  className="mt-1 w-5 h-5 rounded focus:ring-2"
+                  style={{
+                    accentColor: 'var(--brand-accent)',
+                    backgroundColor: 'var(--card-paper)',
+                    borderColor: 'var(--hairline-borders)'
+                  }}
+                />
+                <label htmlFor="terms-checkbox" className="text-sm leading-relaxed cursor-pointer" style={{color: 'var(--secondary-text)'}}>
+                  I agree to the{' '}
+                  <Link 
+                    to="/terms" 
+                    target="_blank"
+                    className="underline font-medium transition-colors"
+                    style={{color: 'var(--brand-accent)'}}
+                    onMouseEnter={(e) => (e.target as HTMLElement).style.color = 'var(--brand-accent-hover)'}
+                    onMouseLeave={(e) => (e.target as HTMLElement).style.color = 'var(--brand-accent)'}
+                  >
+                    Terms and Conditions
+                  </Link>
+                  {' '}and understand that I must comply with the community guidelines and safety requirements.
+                </label>
               </div>
-            )}
-          </div>
-          
-          {/* Terms and Conditions Checkbox */}
-          <div className="flex items-start gap-3 p-4 bg-muted/50 rounded-lg border border-border">
-            <input
-              type="checkbox"
-              id="terms-checkbox"
-              checked={acceptedTerms}
-              onChange={(e) => setAcceptedTerms(e.target.checked)}
-              className="mt-1 w-5 h-5 text-primary bg-background border-border rounded focus:ring-primary focus:ring-2"
-            />
-            <label htmlFor="terms-checkbox" className="text-sm text-muted-foreground leading-relaxed cursor-pointer">
-              I agree to the{' '}
-              <Link 
-                to="/terms" 
-                target="_blank"
-                className="text-primary hover:text-primary/80 underline font-medium transition-colors"
-              >
-                Terms and Conditions
-              </Link>
-              {' '}and understand that I must comply with the community guidelines and safety requirements.
-            </label>
-          </div>
-          
-          <div className="flex flex-col md:flex-row gap-4 justify-center mt-10">
-            <button 
-              className={`font-bold px-8 py-4 rounded-lg text-lg shadow-lg transition-all duration-300 ${
-                acceptedTerms 
-                  ? 'bg-primary text-primary-foreground hover:shadow-xl hover:-translate-y-1' 
-                  : 'bg-muted text-muted-foreground cursor-not-allowed opacity-60'
-              }`}
-              type="submit"
-              disabled={!acceptedTerms}
-            >
-              Submit for review
-            </button>
-            <Link 
-              to="/" 
-              className="border-2 border-primary text-primary font-bold px-8 py-4 rounded-lg text-lg bg-transparent hover:bg-primary hover:text-primary-foreground transition-all duration-300 text-center"
-            >
-              Cancel
-            </Link>
-          </div>
-          {status && status!=='submitted' && (
-            <div className="bg-destructive text-destructive-foreground text-sm font-medium text-center p-3 rounded-lg">
-              {status}
+              
+              <div className="flex flex-col md:flex-row gap-4 justify-center">
+                <Link 
+                  to="/" 
+                  className="secondary-button text-center"
+                >
+                  Cancel
+                </Link>
+              </div>
+              {status && status!=='submitted' && (
+                <div className="text-sm font-medium text-center p-3 rounded-lg mt-4" style={{backgroundColor: 'var(--destructive)', color: 'var(--destructive-foreground)'}}>
+                  {status}
+                </div>
+              )}
             </div>
-          )}
-        </form>
+          </form>
+        </div>
+      </div>
+      
+      {/* Sticky submit bar */}
+      <div className="sticky-submit-bar">
+        <button 
+          className="primary-button"
+          type="submit"
+          form="registration-form"
+          disabled={!acceptedTerms}
+        >
+          Submit for review
+        </button>
       </div>
     </div>
   )
@@ -286,34 +300,35 @@ export function Register(){
 
 function Input({label,value,onChange,required=false,full=false,type="text"}:{label:string;value:string;onChange:(v:string)=>void;required?:boolean;full?:boolean;type?:string}){
   return (
-    <label className={`block ${full ? 'md:col-span-2' : ''}`}>
-      <span className="text-sm font-bold text-card-foreground mb-2 block">
+    <div className={`block ${full ? 'md:col-span-2' : ''}`}>
+      <label className="form-label">
         {label}{required?' *':''}
-      </span>
+      </label>
       <input 
         type={type} 
         value={value} 
         onChange={e=>onChange(e.target.value)} 
         required={required} 
-        className="w-full bg-background border-2 border-border rounded-lg px-4 py-3 text-card-foreground placeholder-muted-foreground focus:border-primary focus:outline-none transition-all duration-300"
+        className="form-input w-full"
+        placeholder={`Enter ${label.toLowerCase()}`}
       />
-    </label>
+    </div>
   )
 }
 
 function Select({label,value,onChange,options,required=false,full=false}:{label:string;value:string;onChange:(v:string)=>void;options:string[];required?:boolean;full?:boolean}){
   return (
-    <label className={`block ${full ? 'md:col-span-2' : ''}`}>
-      <span className="text-sm font-bold text-card-foreground mb-2 block">
+    <div className={`block ${full ? 'md:col-span-2' : ''}`}>
+      <label className="form-label">
         {label}{required?' *':''}
-      </span>
+      </label>
       <select 
         value={value} 
         onChange={e=>onChange(e.target.value)} 
         required={required} 
-        className="w-full bg-background border-2 border-border rounded-lg px-4 py-3 text-card-foreground focus:border-primary focus:outline-none transition-all duration-300 cursor-pointer appearance-none bg-no-repeat bg-right pr-10"
+        className="form-input w-full cursor-pointer appearance-none bg-no-repeat bg-right pr-10"
         style={{
-          backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b4423' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
+          backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%238A4B2A' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
           backgroundPosition: 'right 12px center',
           backgroundSize: '16px'
         }}
@@ -321,7 +336,7 @@ function Select({label,value,onChange,options,required=false,full=false}:{label:
         <option value="">Select {label.toLowerCase()}</option>
         {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
       </select>
-    </label>
+    </div>
   )
 }
 
@@ -336,17 +351,17 @@ function LocationSelect({label,value,onChange,customValue,onCustomChange,options
   full?:boolean;
 }){
   return (
-    <label className={`block ${full ? 'md:col-span-2' : ''}`}>
-      <span className="text-sm font-bold text-card-foreground mb-2 block">
+    <div className={`block ${full ? 'md:col-span-2' : ''}`}>
+      <label className="form-label">
         {label}{required?' *':''}
-      </span>
+      </label>
       <select 
         value={value} 
         onChange={e=>onChange(e.target.value)} 
         required={required} 
-        className="w-full bg-background border-2 border-border rounded-lg px-4 py-3 text-card-foreground focus:border-primary focus:outline-none transition-all duration-300 cursor-pointer appearance-none bg-no-repeat bg-right pr-10"
+        className="form-input w-full cursor-pointer appearance-none bg-no-repeat bg-right pr-10"
         style={{
-          backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b4423' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
+          backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%238A4B2A' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
           backgroundPosition: 'right 12px center',
           backgroundSize: '16px'
         }}
@@ -361,27 +376,49 @@ function LocationSelect({label,value,onChange,customValue,onCustomChange,options
           value={customValue} 
           onChange={e=>onCustomChange(e.target.value)} 
           required={required}
-          className="w-full bg-background border-2 border-border rounded-lg px-4 py-3 text-card-foreground placeholder-muted-foreground focus:border-primary focus:outline-none transition-all duration-300 mt-2"
+          className="form-input w-full mt-2"
         />
       )}
-    </label>
+    </div>
   )
 }
 
 function Text({label,value,onChange,rows=4,required=false,full=false}:{label:string;value:string;onChange:(v:string)=>void;rows?:number;required?:boolean;full?:boolean}){
+  const wordCount = value.trim().split(/\s+/).filter(word => word.length > 0).length;
+  const minWords = 25;
+  const isMinimumMet = wordCount >= minWords;
+  
   return (
-    <label className={`block ${full ? 'md:col-span-2' : ''}`}>
-      <span className="text-sm font-bold text-card-foreground mb-2 block">
+    <div className={`block ${full ? 'md:col-span-2' : ''}`}>
+      <label className="form-label">
         {label}{required?' *':''}
-      </span>
-      <textarea 
-        value={value} 
-        onChange={e=>onChange(e.target.value)} 
-        rows={rows} 
-        required={required} 
-        className="w-full bg-background border-2 border-border rounded-lg px-4 py-3 text-card-foreground placeholder-muted-foreground focus:border-primary focus:outline-none transition-all duration-300 resize-vertical min-h-32"
-      />
-    </label>
+      </label>
+      <div className="relative">
+        <textarea 
+          value={value} 
+          onChange={e=>onChange(e.target.value)} 
+          rows={rows} 
+          required={required} 
+          className="form-input w-full resize-vertical min-h-32"
+          placeholder={`Enter ${label.toLowerCase()}`}
+          style={{
+            minHeight: '140px',
+            paddingBottom: '32px'
+          }}
+        />
+        <div 
+          className="absolute bottom-2 right-3 text-xs"
+          style={{color: isMinimumMet ? 'var(--brand-accent)' : 'var(--helper-text)'}}
+        >
+          {wordCount} words
+        </div>
+      </div>
+      {required && (
+        <p className="form-helper">
+          Minimum {minWords} words required
+        </p>
+      )}
+    </div>
   )
 }
 
