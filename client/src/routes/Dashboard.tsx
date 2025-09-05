@@ -14,17 +14,18 @@ type Profile = {
   custom_location?:string; 
   bio:string; 
   relationship_status:string; 
+  partner_expectations?:string; 
   interest_1:string; 
-  interest_1_desc:string; 
   interest_2:string; 
-  interest_2_desc:string; 
   interest_3:string; 
-  interest_3_desc:string;
+  interest_4:string; 
+  interest_5:string; 
+  interest_6:string; 
   is_visible?:boolean;
   profile_created_at?:string;
   profile_updated_at?:string;
 }
-type MatchItem = { id:string; other_user_id:string; name:string; bio:string; relationship_status:string; interest_1:string; interest_1_desc:string; interest_2:string; interest_2_desc:string; interest_3:string; interest_3_desc:string; instagram_handle?: string; location?:string; custom_location?:string; age?:number }
+type MatchItem = { id:string; other_user_id:string; name:string; bio:string; relationship_status:string; partner_expectations?:string; interest_1:string; interest_2:string; interest_3:string; interest_4:string; interest_5:string; interest_6:string; instagram_handle?: string; location?:string; custom_location?:string; age?:number }
 
 export function Dashboard(){
   const navigate = useNavigate()
@@ -463,11 +464,11 @@ export function Dashboard(){
                       bio: matchItem.bio,
                       relationship_status: matchItem.relationship_status,
                       interest_1: matchItem.interest_1,
-                      interest_1_desc: matchItem.interest_1_desc,
                       interest_2: matchItem.interest_2,
-                      interest_2_desc: matchItem.interest_2_desc,
                       interest_3: matchItem.interest_3,
-                      interest_3_desc: matchItem.interest_3_desc
+                      interest_4: matchItem.interest_4,
+                      interest_5: matchItem.interest_5,
+                      interest_6: matchItem.interest_6
                     }
                     setSelectedMatchProfile(fallbackProfile)
                   }
@@ -487,6 +488,46 @@ export function Dashboard(){
                   await fetchData()
                 }}
                 userId={userId}
+                onViewProfile={async (requestItem) => {
+                  try {
+                    const base = import.meta.env.VITE_API_URL
+                    const response = await fetch(`${base}/api/profile/${requestItem.from_user_id}`, {
+                      headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                      }
+                    })
+                    
+                    if (!response.ok) {
+                      throw new Error('Failed to fetch profile')
+                    }
+                    
+                    const profileData = await response.json()
+                    setSelectedMatchProfile(profileData)
+                  } catch (error) {
+                    console.error('Error fetching profile:', error)
+                    // Fallback to basic data if API fails
+                    const fallbackProfile: Profile = {
+                      id: requestItem.from_user_id,
+                      name: requestItem.name || `User ${requestItem.from_user_id.slice(0,8)}…`,
+                      bio: requestItem.bio || 'No bio available',
+                      gender: 'Not specified',
+                      relationship_status: 'Not specified',
+                      location: requestItem.location || 'Not specified',
+                      custom_location: requestItem.custom_location,
+                      interest_1: 'Not specified',
+                      interest_2: 'Not specified',
+                      interest_3: 'Not specified',
+                      interest_4: 'Not specified',
+                      interest_5: 'Not specified',
+                      interest_6: 'Not specified',
+                      partner_expectations: 'Not specified',
+                      instagram_handle: undefined,
+                      age: undefined
+                    }
+                    setSelectedMatchProfile(fallbackProfile)
+                  }
+                }}
               />
             </div>
           )}
@@ -515,6 +556,12 @@ export function Dashboard(){
         <Modal onClose={()=>setSelected(undefined)}>
           <h3 style={{color: 'var(--text)', margin: '0 0 16px 0'}}>Profile Details</h3>
           <p style={{color:'var(--muted)', margin: '0 0 16px 0', lineHeight: 1.6}}>{selected.bio}</p>
+          {selected.partner_expectations && (
+            <div style={{marginBottom: '16px'}}>
+              <div style={{color: 'var(--text)', fontWeight: 600, marginBottom: '8px'}}>Partner Expectations:</div>
+              <p style={{color:'var(--muted)', margin: 0, lineHeight: 1.6}}>{selected.partner_expectations}</p>
+            </div>
+          )}
           <div style={{display: 'grid', gap: '8px', marginBottom: '16px'}}>
             <div style={{color: 'var(--text)'}}><strong>Name:</strong> {selected.name}</div>
             <div style={{color: 'var(--text)'}}><strong>Gender:</strong> {selected.gender}</div>
@@ -526,15 +573,21 @@ export function Dashboard(){
           <div style={{display: 'grid', gap: '12px'}}>
             <div>
               <div style={{color: 'var(--text)', fontWeight: 600}}>Interest 1: {selected.interest_1}</div>
-              <div style={{color:'var(--muted)',fontSize:14, marginTop: '4px'}}>{selected.interest_1_desc}</div>
             </div>
             <div>
               <div style={{color: 'var(--text)', fontWeight: 600}}>Interest 2: {selected.interest_2}</div>
-              <div style={{color:'var(--muted)',fontSize:14, marginTop: '4px'}}>{selected.interest_2_desc}</div>
             </div>
             <div>
               <div style={{color: 'var(--text)', fontWeight: 600}}>Interest 3: {selected.interest_3}</div>
-              <div style={{color:'var(--muted)',fontSize:14, marginTop: '4px'}}>{selected.interest_3_desc}</div>
+            </div>
+            <div>
+              <div style={{color: 'var(--text)', fontWeight: 600}}>Interest 4: {selected.interest_4}</div>
+            </div>
+            <div>
+              <div style={{color: 'var(--text)', fontWeight: 600}}>Interest 5: {selected.interest_5}</div>
+            </div>
+            <div>
+              <div style={{color: 'var(--text)', fontWeight: 600}}>Interest 6: {selected.interest_6}</div>
             </div>
           </div>
         </Modal>
@@ -601,25 +654,43 @@ export function Dashboard(){
             <p style={{color:'#8B4513', margin: 0, lineHeight: 1.6, fontSize: '14px'}}>{selectedMatchProfile.bio}</p>
           </div>
 
+          {/* Partner Expectations */}
+          <div style={{marginBottom: '20px'}}>
+            <div style={{color: '#8B4513', fontWeight: 600, marginBottom: '8px', fontSize: '16px'}}>Partner Expectations:</div>
+            <p style={{color:'#8B4513', margin: 0, lineHeight: 1.6, fontSize: '14px'}}>{selectedMatchProfile.partner_expectations || 'No partner expectations specified'}</p>
+          </div>
+
           {/* Interests */}
           <div style={{display: 'grid', gap: '16px'}}>
             <div style={{color: '#8B4513', fontWeight: 600, fontSize: '16px', marginBottom: '8px'}}>Interests:</div>
             {selectedMatchProfile.interest_1 && (
               <InterestDropdown 
                 title={selectedMatchProfile.interest_1}
-                description={selectedMatchProfile.interest_1_desc}
               />
             )}
             {selectedMatchProfile.interest_2 && (
               <InterestDropdown 
                 title={selectedMatchProfile.interest_2}
-                description={selectedMatchProfile.interest_2_desc}
               />
             )}
             {selectedMatchProfile.interest_3 && (
               <InterestDropdown 
                 title={selectedMatchProfile.interest_3}
-                description={selectedMatchProfile.interest_3_desc}
+              />
+            )}
+            {selectedMatchProfile.interest_4 && (
+              <InterestDropdown 
+                title={selectedMatchProfile.interest_4}
+              />
+            )}
+            {selectedMatchProfile.interest_5 && (
+              <InterestDropdown 
+                title={selectedMatchProfile.interest_5}
+              />
+            )}
+            {selectedMatchProfile.interest_6 && (
+              <InterestDropdown 
+                title={selectedMatchProfile.interest_6}
               />
             )}
           </div>
@@ -1543,6 +1614,27 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
             </div>
           </div>
 
+          {/* Partner Expectations Section */}
+          <div className="mb-8 flex-1" style={{
+            marginBottom: '24px'
+          }}>
+            <h3 className="m-0 mb-4 font-heading font-bold text-card-foreground section-title" style={{
+              fontSize: '18px',
+              marginBottom: '12px',
+              color: '#000000'
+            }}>
+              Partner Expectations
+            </h3>
+            <div className="leading-relaxed text-card-foreground font-sans expectations-text" style={{
+              fontSize: '16px',
+              lineHeight: '1.6',
+              fontFamily: 'Roboto, sans-serif',
+              color: '#000000'
+            }}>
+              {currentProfile?.partner_expectations || 'No partner expectations available'}
+            </div>
+          </div>
+
           {/* Interests Section */}
           <div className="flex-1">
             <h3 className="m-0 mb-4 font-heading font-bold text-card-foreground section-title" style={{
@@ -1626,7 +1718,7 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
                 {currentProfile?.interest_3 || 'Music'}
               </div>
 
-              {/* Interest Bubble 4 - Additional */}
+              {/* Interest Bubble 4 */}
               <div style={{
                 position: 'absolute',
                 top: '130px',
@@ -1646,10 +1738,10 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
                 boxShadow: '0 4px 12px rgba(26, 155, 163, 0.3)',
                 animation: 'float 9s ease-in-out infinite 0.5s'
               }}>
-                Cooking
+                {currentProfile?.interest_4 || 'Cooking'}
               </div>
 
-              {/* Interest Bubble 5 - Additional */}
+              {/* Interest Bubble 5 */}
               <div style={{
                 position: 'absolute',
                 top: '120px',
@@ -1669,10 +1761,10 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
                 boxShadow: '0 4px 12px rgba(26, 155, 163, 0.3)',
                 animation: 'float 6.5s ease-in-out infinite 1.5s'
               }}>
-                Photography
+                {currentProfile?.interest_5 || 'Photography'}
               </div>
 
-              {/* Interest Bubble 6 - Additional */}
+              {/* Interest Bubble 6 */}
               <div style={{
                 position: 'absolute',
                 top: '140px',
@@ -1692,7 +1784,7 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
                 boxShadow: '0 4px 12px rgba(26, 155, 163, 0.3)',
                 animation: 'float 7.5s ease-in-out infinite 0.8s'
               }}>
-                Gaming
+                {currentProfile?.interest_6 || 'Gaming'}
               </div>
             </div>
           </div>
@@ -1800,64 +1892,19 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
 }
 
 // Interest Dropdown Component
-function InterestDropdown({ title, description }: { title: string; description?: string }) {
-  const [isExpanded, setIsExpanded] = useState(false)
-  
+function InterestDropdown({ title }: { title: string }) {
   return (
     <div style={{
       background: '#FDD8D6', 
       borderRadius: '8px', 
       border: '1px solid #8B4513',
-      overflow: 'hidden',
-      transition: 'all 0.3s ease'
+      padding: '12px',
+      color: '#8B4513',
+      fontWeight: 600,
+      fontSize: '16px',
+      textAlign: 'center'
     }}>
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        style={{
-          width: '100%',
-          padding: '12px',
-          background: 'transparent',
-          border: 'none',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          cursor: 'pointer',
-          color: '#8B4513',
-          fontWeight: 600,
-          fontSize: '16px'
-        }}
-      >
-        <span>{title}</span>
-        <svg 
-          width="16" 
-          height="16" 
-          fill="#8B4513" 
-          viewBox="0 0 24 24"
-          style={{
-            transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-            transition: 'transform 0.3s ease'
-          }}
-        >
-          <path d="M7 10l5 5 5-5z"/>
-        </svg>
-      </button>
-      
-      {isExpanded && description && (
-        <div style={{
-          padding: '0 12px 12px 12px',
-          borderTop: '1px solid #8B4513',
-          background: 'rgba(255,255,255,0.3)'
-        }}>
-          <div style={{
-            color: '#8B4513',
-            fontSize: '14px',
-            lineHeight: 1.5,
-            marginTop: '8px'
-          }}>
-            {description}
-          </div>
-        </div>
-      )}
+      {title}
     </div>
   )
 }
@@ -2037,10 +2084,11 @@ function MatchesSection({ matches, onRefresh, onChatClick, onViewProfile }: {
 }
 
 // Requests Section Component
-function RequestsSection({ incoming, onAccepted, userId }: {
+function RequestsSection({ incoming, onAccepted, userId, onViewProfile }: {
   incoming: any[];
   onAccepted: (id: string) => void;
   userId: string;
+  onViewProfile: (requestItem: any) => void;
 }) {
   return (
     <div>
@@ -2062,7 +2110,7 @@ function RequestsSection({ incoming, onAccepted, userId }: {
           ) : (
         <div className="responsive-matches" style={{display: 'grid', gap: 12}}>
           {incoming.map(r => (
-              <RequestRow key={r.id} item={r} me={userId} onAccepted={() => onAccepted(r.id)} />
+              <RequestRow key={r.id} item={r} me={userId} onAccepted={() => onAccepted(r.id)} onViewProfile={() => onViewProfile(r)} />
           ))}
         </div>
       )}
@@ -2946,7 +2994,7 @@ function ChatSection({ matches, userId, selectedChatUser, setSelectedChatUser }:
   )
 }
 
-function RequestRow({item,me,onAccepted}:{item:{id:string;from_user_id:string;message:string;bio:string;name?:string;created_at:string;location?:string;custom_location?:string};me:string;onAccepted:()=>void}){
+function RequestRow({item,me,onAccepted,onViewProfile}:{item:{id:string;from_user_id:string;message:string;bio:string;name?:string;created_at:string;location?:string;custom_location?:string};me:string;onAccepted:()=>void;onViewProfile:()=>void}){
   const [isAccepting, setIsAccepting] = useState(false)
   
   async function accept(){
@@ -2971,7 +3019,15 @@ function RequestRow({item,me,onAccepted}:{item:{id:string;from_user_id:string;me
       display: 'flex', 
       justifyContent: 'space-between', 
       alignItems: 'center',
-      transition: 'all 0.2s ease'
+      transition: 'all 0.2s ease',
+      cursor: 'pointer'
+    }}
+    onClick={(e) => {
+      // Only trigger profile view if the click is not on the Accept button
+      const target = e.target as HTMLElement
+      if (!target.closest('button')) {
+        onViewProfile()
+      }
     }}
     onMouseEnter={(e) => {
       e.currentTarget.style.background = '#EDE8D0'
@@ -3198,6 +3254,35 @@ function ProfileDisplay({ me }: { me: any }) {
         </div>
       </div>
 
+      {/* Partner Expectations Section */}
+      <div style={{marginBottom: '32px'}}>
+        <h3 className="section-title" style={{
+          margin: '0 0 12px 0',
+          fontSize: '18px',
+          fontWeight: 600,
+          color: '#000000',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          <svg width="18" height="18" fill="#107980" viewBox="0 0 24 24">
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+          </svg>
+          Partner Expectations
+        </h3>
+        <div className="partner-expectations-text" style={{
+          padding: '16px',
+          lineHeight: '1.6',
+          color: '#000000',
+          fontSize: '14px',
+          background: '#EDE8D0',
+          borderRadius: '12px',
+          border: '1px solid #107980'
+        }}>
+          {me.partner_expectations || 'No partner expectations specified'}
+        </div>
+      </div>
+
             {/* Interests Section */}
       <div>
         <h3 className="section-title" style={{
@@ -3215,19 +3300,20 @@ function ProfileDisplay({ me }: { me: any }) {
           My Interests
         </h3>
         <div style={{display: 'grid', gap: '16px'}}>
-          {/* Interest 1 */}
-          {me.interest_1 && (
-            <div className="interest-item" style={{
-              padding: '16px',
-              background: '#EDE8D0',
-              borderRadius: '12px',
-              border: '1px solid #107980'
-            }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                marginBottom: '8px'
+          {/* Interests Grid */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+            gap: '12px',
+            marginTop: '16px'
+          }}>
+            {me.interest_1 && (
+              <div className="interest-item" style={{
+                padding: '12px',
+                background: '#EDE8D0',
+                borderRadius: '12px',
+                border: '1px solid #107980',
+                textAlign: 'center'
               }}>
                 <span className="interest-tag" style={{
                   background: '#107980',
@@ -3240,30 +3326,15 @@ function ProfileDisplay({ me }: { me: any }) {
                   {me.interest_1}
                 </span>
               </div>
-              <p className="interest-desc" style={{
-                margin: 0,
-                color: '#000000',
-                lineHeight: '1.5',
-                fontSize: '13px'
-              }}>
-                {me.interest_1_desc || 'No description available'}
-              </p>
-            </div>
-          )}
+            )}
 
-          {/* Interest 2 */}
-          {me.interest_2 && (
-            <div className="interest-item" style={{
-              padding: '16px',
-              background: '#EDE8D0',
-              borderRadius: '12px',
-              border: '1px solid #107980'
-            }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                marginBottom: '8px'
+            {me.interest_2 && (
+              <div className="interest-item" style={{
+                padding: '12px',
+                background: '#EDE8D0',
+                borderRadius: '12px',
+                border: '1px solid #107980',
+                textAlign: 'center'
               }}>
                 <span className="interest-tag" style={{
                   background: '#107980',
@@ -3276,55 +3347,95 @@ function ProfileDisplay({ me }: { me: any }) {
                   {me.interest_2}
                 </span>
               </div>
-              <p className="interest-desc" style={{
-                margin: 0,
-                color: '#000000',
-                lineHeight: '1.5',
-                fontSize: '13px'
-              }}>
-                {me.interest_2_desc || 'No description available'}
-              </p>
-            </div>
-          )}
+            )}
 
-          {/* Interest 3 */}
-          {me.interest_3 && (
-            <div className="interest-item" style={{
-              padding: '16px',
-              background: '#EDE8D0',
-              borderRadius: '12px',
-              border: '1px solid #107980'
+            {me.interest_3 && (
+              <div className="interest-item" style={{
+                padding: '12px',
+                background: '#EDE8D0',
+                borderRadius: '12px',
+                border: '1px solid #107980',
+                textAlign: 'center'
+              }}>
+                <span className="interest-tag" style={{
+                  background: '#107980',
+                  color: 'white',
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  fontWeight: 600
                 }}>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    marginBottom: '8px'
-                  }}>
-                    <span className="interest-tag" style={{
-                      background: '#107980',
-                      color: 'white',
-                      padding: '6px 12px',
-                      borderRadius: '8px',
-                      fontSize: '12px',
-                      fontWeight: 600
-                    }}>
-                      {me.interest_3}
-                    </span>
-                  </div>
-                  <p className="interest-desc" style={{
-                    margin: 0,
-                    color: '#000000',
-                    lineHeight: '1.5',
-                    fontSize: '13px'
-                  }}>
-                    {me.interest_3_desc || 'No description available'}
-                  </p>
-                </div>
-          )}
+                  {me.interest_3}
+                </span>
+              </div>
+            )}
+
+            {me.interest_4 && (
+              <div className="interest-item" style={{
+                padding: '12px',
+                background: '#EDE8D0',
+                borderRadius: '12px',
+                border: '1px solid #107980',
+                textAlign: 'center'
+              }}>
+                <span className="interest-tag" style={{
+                  background: '#107980',
+                  color: 'white',
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  fontWeight: 600
+                }}>
+                  {me.interest_4}
+                </span>
+              </div>
+            )}
+
+            {me.interest_5 && (
+              <div className="interest-item" style={{
+                padding: '12px',
+                background: '#EDE8D0',
+                borderRadius: '12px',
+                border: '1px solid #107980',
+                textAlign: 'center'
+              }}>
+                <span className="interest-tag" style={{
+                  background: '#107980',
+                  color: 'white',
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  fontWeight: 600
+                }}>
+                  {me.interest_5}
+                </span>
+              </div>
+            )}
+
+            {me.interest_6 && (
+              <div className="interest-item" style={{
+                padding: '12px',
+                background: '#EDE8D0',
+                borderRadius: '12px',
+                border: '1px solid #107980',
+                textAlign: 'center'
+              }}>
+                <span className="interest-tag" style={{
+                  background: '#107980',
+                  color: 'white',
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  fontWeight: 600
+                }}>
+                  {me.interest_6}
+                </span>
+              </div>
+            )}
+          </div>
 
           {/* No interests message */}
-          {!me.interest_1 && !me.interest_2 && !me.interest_3 && (
+          {!me.interest_1 && !me.interest_2 && !me.interest_3 && !me.interest_4 && !me.interest_5 && !me.interest_6 && (
             <div className="responsive-empty" style={{
               padding: '32px 20px',
               textAlign: 'center',

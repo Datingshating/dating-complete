@@ -12,15 +12,17 @@ export function Register(){
     customLocation:"",
     bio:"",
     relationshipStatus:"",
+    partnerExpectations:"",
     interest1:"",
-    interest1Desc:"",
     interest2:"",
-    interest2Desc:"",
     interest3:"",
-    interest3Desc:"",
+    interest4:"",
+    interest5:"",
+    interest6:"",
   })
   const [status,setStatus]=useState<string|undefined>()
   const [isMobile, setIsMobile] = useState(false)
+  const [selectedInterests, setSelectedInterests] = useState<string[]>([])
 
   // Check screen size on mount and resize
   useEffect(() => {
@@ -32,6 +34,15 @@ export function Register(){
     window.addEventListener('resize', checkScreenSize)
     return () => window.removeEventListener('resize', checkScreenSize)
   }, [])
+
+  // Update form when selectedInterests changes
+  useEffect(() => {
+    const newForm = { ...form }
+    for (let i = 0; i < 6; i++) {
+      newForm[`interest${i + 1}` as keyof typeof form] = selectedInterests[i] || ""
+    }
+    setForm(newForm)
+  }, [selectedInterests])
 
   const cities = [
     "Pune",
@@ -52,8 +63,54 @@ export function Register(){
     "Others"
   ]
 
+  const interests = [
+    "Travel & Adventure",
+    "Cooking & Food",
+    "Music & Concerts",
+    "Movies & TV Shows",
+    "Reading & Books",
+    "Fitness & Gym",
+    "Dancing",
+    "Photography",
+    "Art & Creativity",
+    "Gaming",
+    "Sports & Athletics",
+    "Nature & Hiking",
+    "Technology & Gadgets",
+    "Fashion & Style",
+    "Coffee & Cafes",
+    "Wine & Fine Dining",
+    "Yoga & Meditation",
+    "Pets & Animals",
+    "Comedy & Stand-up",
+    "Board Games",
+    "Volunteering",
+    "Language Learning",
+    "DIY & Crafts",
+    "Astronomy",
+    "History & Museums",
+    "Fashion & Shopping",
+    "Beach & Water Sports",
+    "Camping & Outdoors",
+    "Classical Music",
+    "Street Food",
+    "Skincare & Beauty"
+  ]
+
+  const handleInterestToggle = (interest: string) => {
+    if (selectedInterests.includes(interest)) {
+      setSelectedInterests(selectedInterests.filter(i => i !== interest))
+    } else if (selectedInterests.length < 6) {
+      setSelectedInterests([...selectedInterests, interest])
+    }
+  }
+
   async function submit(e:React.FormEvent){
     e.preventDefault()
+    if (selectedInterests.length !== 6) {
+      setStatus('Please select exactly 6 interests')
+      return
+    }
     try{
       const res = await fetch(import.meta.env.VITE_API_URL + '/api/register',{
         method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(form)
@@ -113,12 +170,62 @@ export function Register(){
           {/* Full width fields */}
           <Select label="Relationship status" value={form.relationshipStatus} onChange={v=>setForm({...form,relationshipStatus:v})} options={['single','in a relationship','recent breakup','its complicated','divorced']} required full />
           <Text label="Bio (minimum 25 words, don't use AI)" value={form.bio} onChange={v=>setForm({...form,bio:v})} rows={6} required full />
-          <Input label="Interest 1" value={form.interest1} onChange={v=>setForm({...form,interest1:v})} required full />
-          <Text label="Interest 1 description (minimum 10 words)" value={form.interest1Desc} onChange={v=>setForm({...form,interest1Desc:v})} rows={3} required full />
-          <Input label="Interest 2" value={form.interest2} onChange={v=>setForm({...form,interest2:v})} required full />
-          <Text label="Interest 2 description (minimum 10 words)" value={form.interest2Desc} onChange={v=>setForm({...form,interest2Desc:v})} rows={3} required full />
-          <Input label="Interest 3" value={form.interest3} onChange={v=>setForm({...form,interest3:v})} required full />
-          <Text label="Interest 3 description (minimum 10 words)" value={form.interest3Desc} onChange={v=>setForm({...form,interest3Desc:v})} rows={3} required full />
+          <Text label="What do you expect in your partner? (minimum 25 words)" value={form.partnerExpectations} onChange={v=>setForm({...form,partnerExpectations:v})} rows={6} required full />
+          
+          {/* Interests Selection */}
+          <div className="md:col-span-2">
+            <div className="mb-4">
+              <span className="text-sm font-bold text-card-foreground mb-2 block">
+                Select 6 Interests * ({selectedInterests.length}/6)
+              </span>
+              {selectedInterests.length === 6 && (
+                <p className="text-sm text-green-600 font-medium mb-2">
+                  ✓ Perfect! You've selected 6 interests
+                </p>
+              )}
+            </div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+              {interests.map((interest) => (
+                <button
+                  key={interest}
+                  type="button"
+                  onClick={() => handleInterestToggle(interest)}
+                  className={`p-3 rounded-lg text-sm font-medium transition-all duration-200 border-2 ${
+                    selectedInterests.includes(interest)
+                      ? 'bg-primary text-primary-foreground border-primary shadow-lg scale-105'
+                      : 'bg-background text-card-foreground border-border hover:border-primary hover:bg-primary/5'
+                  } ${selectedInterests.length >= 6 && !selectedInterests.includes(interest) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                  disabled={selectedInterests.length >= 6 && !selectedInterests.includes(interest)}
+                >
+                  {interest}
+                </button>
+              ))}
+            </div>
+            
+            {selectedInterests.length > 0 && (
+              <div className="mt-4 p-4 bg-primary/10 rounded-lg border border-primary/20">
+                <h4 className="font-bold text-card-foreground mb-2">Selected Interests:</h4>
+                <div className="flex flex-wrap gap-2">
+                  {selectedInterests.map((interest, index) => (
+                    <span
+                      key={interest}
+                      className="inline-flex items-center gap-1 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium"
+                    >
+                      {interest}
+                      <button
+                        type="button"
+                        onClick={() => handleInterestToggle(interest)}
+                        className="ml-1 hover:bg-primary-foreground/20 rounded-full w-4 h-4 flex items-center justify-center text-xs"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
           
           <div className="flex flex-col md:flex-row gap-4 justify-center mt-10">
             <button 

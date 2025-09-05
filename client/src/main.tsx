@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+import './debug-env'
 import { App } from './routes/App'
 import { Register } from './routes/Register'
 import { Login } from './routes/Login'

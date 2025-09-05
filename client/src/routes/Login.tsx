@@ -23,6 +23,8 @@ export function Login(){
     e.preventDefault()
     setErr(undefined)
     try{
+      console.log('Login - VITE_API_URL:', import.meta.env.VITE_API_URL);
+      console.log('Login - Full URL:', import.meta.env.VITE_API_URL + '/api/login');
       const res = await fetch(import.meta.env.VITE_API_URL + '/api/login',{
         method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({loginId,password})
       })
@@ -108,6 +110,3 @@ export function Login(){
     </div>
   )
 }
-
-
-

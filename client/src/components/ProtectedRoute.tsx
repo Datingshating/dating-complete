@@ -21,6 +21,8 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
       try {
         // Verify token with backend
+        console.log('VITE_API_URL:', import.meta.env.VITE_API_URL);
+        console.log('Full URL:', `${import.meta.env.VITE_API_URL}/api/me`);
         const response = await fetch(`${import.meta.env.VITE_API_URL}/api/me`, {
           headers: {
             'Authorization': `Bearer ${token}`,

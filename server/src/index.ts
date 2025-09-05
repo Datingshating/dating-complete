@@ -221,16 +221,17 @@ app.post("/api/register", async (req, res) => {
       customLocation,
       bio,
       relationshipStatus,
+      partnerExpectations,
       interest1,
-      interest1Desc,
       interest2,
-      interest2Desc,
       interest3,
-      interest3Desc,
+      interest4,
+      interest5,
+      interest6,
     } = req.body || {};
 
     // Validate required fields
-    if (!name || !gender || !dateOfBirth || !whatsappNumber || !instagramHandle || !location || !bio || !relationshipStatus || !interest1 || !interest2 || !interest3) {
+    if (!name || !gender || !dateOfBirth || !whatsappNumber || !instagramHandle || !location || !bio || !relationshipStatus || !partnerExpectations || !interest1 || !interest2 || !interest3 || !interest4 || !interest5 || !interest6) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
@@ -240,13 +241,10 @@ app.post("/api/register", async (req, res) => {
       return res.status(400).json({ error: "Bio must contain at least 25 words" });
     }
 
-    // Validate interest descriptions minimum 10 words each
-    const desc1Words = interest1Desc?.trim().split(/\s+/).length || 0;
-    const desc2Words = interest2Desc?.trim().split(/\s+/).length || 0;
-    const desc3Words = interest3Desc?.trim().split(/\s+/).length || 0;
-
-    if (desc1Words < 10 || desc2Words < 10 || desc3Words < 10) {
-      return res.status(400).json({ error: "Each interest description must contain at least 10 words" });
+    // Validate partner expectations minimum 25 words
+    const expectationsWordCount = partnerExpectations.trim().split(/\s+/).length;
+    if (expectationsWordCount < 25) {
+      return res.status(400).json({ error: "Partner expectations must contain at least 25 words" });
     }
 
     // Create user record
@@ -277,12 +275,13 @@ app.post("/api/register", async (req, res) => {
         user_id: userData.id,
         bio,
         relationship_status: relationshipStatus,
+        partner_expectations: partnerExpectations,
         interest_1: interest1,
-        interest_1_desc: interest1Desc,
         interest_2: interest2,
-        interest_2_desc: interest2Desc,
         interest_3: interest3,
-        interest_3_desc: interest3Desc
+        interest_4: interest4,
+        interest_5: interest5,
+        interest_6: interest6
       });
 
     if (profileError) {
@@ -377,45 +376,45 @@ app.post("/api/logout", (req, res) => {
 });
 
 // Current user: fetch profile (protected route)
-app.get("/api/me", authenticateToken, async (req, res) => {
-  const userId = (req as any).user.userId;
-  
-  try {
-    const { data, error } = await supabase
-      .from('users')
-      .select(`
-        id, name, gender, date_of_birth, whatsapp_number, instagram_handle, status, location, custom_location,
-        profiles (
-          bio, relationship_status, interest_1, interest_1_desc, interest_2, interest_2_desc, interest_3, interest_3_desc
-        )
-      `)
-      .eq('id', userId)
-      .single();
+  app.get("/api/me", authenticateToken, async (req, res) => {
+    const userId = (req as any).user.userId;
+    
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select(`
+          id, name, gender, date_of_birth, whatsapp_number, instagram_handle, status, location, custom_location,
+          profiles (
+            bio, relationship_status, interest_1, interest_2, interest_3, interest_4, interest_5, interest_6
+          )
+        `)
+        .eq('id', userId)
+        .single();
 
-    if (error || !data) {
-      return res.status(404).json({ error: "Not found" });
+      if (error || !data) {
+        return res.status(404).json({ error: "Not found" });
+      }
+
+      // Flatten the data structure
+      const userData: any = {
+        ...data,
+        ...(data.profiles || {})
+      };
+      if (data.profiles) {
+        delete userData.profiles;
+      }
+
+      res.json(userData);
+    } catch (err) {
+      console.error('Error fetching user profile:', err);
+      res.status(500).json({ error: "Failed to load" });
     }
-
-    // Flatten the data structure
-    const userData: any = {
-      ...data,
-      ...(data.profiles || {})
-    };
-    if (data.profiles) {
-      delete userData.profiles;
-    }
-
-    res.json(userData);
-  } catch (err) {
-    console.error('Error fetching user profile:', err);
-    res.status(500).json({ error: "Failed to load" });
-  }
-});
+  });
 
 // ... rest of your existing code ...
 // Current user: update profile (approved users)
 app.put("/api/me", async (req, res) => {
-  const { userId, bio, relationshipStatus, interest1, interest1Desc, interest2, interest2Desc, interest3, interest3Desc } = req.body || {};
+  const { userId, bio, relationshipStatus, interest1, interest2, interest3, interest4, interest5, interest6 } = req.body || {};
   if (!userId) return res.status(400).json({ error: "Missing userId" });
   
   try {
@@ -442,17 +441,6 @@ app.put("/api/me", async (req, res) => {
       }
     }
 
-    // Validate interest descriptions minimum 10 words each
-    if (interest1Desc || interest2Desc || interest3Desc) {
-      const desc1Words = interest1Desc?.trim().split(/\s+/).length || 0;
-      const desc2Words = interest2Desc?.trim().split(/\s+/).length || 0;
-      const desc3Words = interest3Desc?.trim().split(/\s+/).length || 0;
-      
-      if (desc1Words < 10 || desc2Words < 10 || desc3Words < 10) {
-        return res.status(400).json({ error: "Each interest description must contain at least 10 words" });
-      }
-    }
-
     // Upsert profile data
     const { error: profileError } = await supabase
       .from('profiles')
@@ -461,11 +449,11 @@ app.put("/api/me", async (req, res) => {
         bio: bio || '',
         relationship_status: relationshipStatus || null,
         interest_1: interest1 || '',
-        interest_1_desc: interest1Desc || '',
         interest_2: interest2 || '',
-        interest_2_desc: interest2Desc || '',
         interest_3: interest3 || '',
-        interest_3_desc: interest3Desc || ''
+        interest_4: interest4 || '',
+        interest_5: interest5 || '',
+        interest_6: interest6 || ''
       });
 
     if (profileError) {
@@ -505,7 +493,7 @@ app.get("/api/feed", async (req, res) => {
       .select(`
         id, name, gender, date_of_birth, location, custom_location,
         profiles!inner (
-          bio, relationship_status, interest_1, interest_1_desc, interest_2, interest_2_desc, interest_3, interest_3_desc
+          bio, relationship_status, partner_expectations, interest_1, interest_2, interest_3, interest_4, interest_5, interest_6
         )
       `)
       .eq('status', 'approved')
@@ -546,12 +534,13 @@ app.get("/api/feed", async (req, res) => {
         custom_location: item.custom_location,
         bio: profile?.bio || '',
         relationship_status: profile?.relationship_status || '',
+        partner_expectations: profile?.partner_expectations || '',
         interest_1: profile?.interest_1 || '',
-        interest_1_desc: profile?.interest_1_desc || '',
         interest_2: profile?.interest_2 || '',
-        interest_2_desc: profile?.interest_2_desc || '',
         interest_3: profile?.interest_3 || '',
-        interest_3_desc: profile?.interest_3_desc || '',
+        interest_4: profile?.interest_4 || '',
+        interest_5: profile?.interest_5 || '',
+        interest_6: profile?.interest_6 || '',
         age: age > 0 ? age : 0
       };
     });
@@ -758,13 +747,13 @@ app.get("/api/matches", async (req, res) => {
         user_a:users!matches_user_a_id_fkey (
           id, name, date_of_birth, instagram_handle, location, custom_location,
           profiles (
-            bio, relationship_status, interest_1, interest_1_desc, interest_2, interest_2_desc, interest_3, interest_3_desc
+            bio, relationship_status, partner_expectations, interest_1, interest_2, interest_3, interest_4, interest_5, interest_6
           )
         ),
         user_b:users!matches_user_b_id_fkey (
           id, name, date_of_birth, instagram_handle, location, custom_location,
           profiles (
-            bio, relationship_status, interest_1, interest_1_desc, interest_2, interest_2_desc, interest_3, interest_3_desc
+            bio, relationship_status, partner_expectations, interest_1, interest_2, interest_3, interest_4, interest_5, interest_6
           )
         )
       `)
@@ -799,12 +788,13 @@ app.get("/api/matches", async (req, res) => {
         name: otherUser.name || '',
         bio: otherUser.profiles?.[0]?.bio || '',
         relationship_status: otherUser.profiles?.[0]?.relationship_status || '',
+        partner_expectations: otherUser.profiles?.[0]?.partner_expectations || '',
         interest_1: otherUser.profiles?.[0]?.interest_1 || '',
-        interest_1_desc: otherUser.profiles?.[0]?.interest_1_desc || '',
         interest_2: otherUser.profiles?.[0]?.interest_2 || '',
-        interest_2_desc: otherUser.profiles?.[0]?.interest_2_desc || '',
         interest_3: otherUser.profiles?.[0]?.interest_3 || '',
-        interest_3_desc: otherUser.profiles?.[0]?.interest_3_desc || '',
+        interest_4: otherUser.profiles?.[0]?.interest_4 || '',
+        interest_5: otherUser.profiles?.[0]?.interest_5 || '',
+        interest_6: otherUser.profiles?.[0]?.interest_6 || '',
         instagram_handle: otherUser.instagram_handle,
         location: otherUser.location,
         custom_location: otherUser.custom_location,
@@ -1075,12 +1065,13 @@ app.get("/api/profile/:userId", async (req, res) => {
         profiles!inner(
           bio,
           relationship_status,
+          partner_expectations,
           interest_1,
-          interest_1_desc,
           interest_2,
-          interest_2_desc,
           interest_3,
-          interest_3_desc,
+          interest_4,
+          interest_5,
+          interest_6,
           is_visible,
           created_at,
           updated_at
@@ -1118,12 +1109,13 @@ app.get("/api/profile/:userId", async (req, res) => {
       status: data.status,
       bio: data.profiles.bio,
       relationship_status: data.profiles.relationship_status,
+      partner_expectations: data.profiles.partner_expectations,
       interest_1: data.profiles.interest_1,
-      interest_1_desc: data.profiles.interest_1_desc,
       interest_2: data.profiles.interest_2,
-      interest_2_desc: data.profiles.interest_2_desc,
       interest_3: data.profiles.interest_3,
-      interest_3_desc: data.profiles.interest_3_desc,
+      interest_4: data.profiles.interest_4,
+      interest_5: data.profiles.interest_5,
+      interest_6: data.profiles.interest_6,
       is_visible: data.profiles.is_visible,
       profile_created_at: data.profiles.created_at,
       profile_updated_at: data.profiles.updated_at
@@ -1450,6 +1442,96 @@ app.post("/api/payment/verify", async (req, res) => {
   } catch (err) {
     console.error("Failed to verify payment:", err);
     res.status(500).json({ error: "Failed to verify payment" });
+  }
+});
+
+// Admin: Get pending registrations
+app.get("/api/admin/pending", async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select(`
+        id, name, gender, date_of_birth, whatsapp_number, instagram_handle, location, custom_location,
+        profiles!inner (
+          bio, relationship_status, interest_1, interest_2, interest_3, interest_4, interest_5, interest_6
+        )
+      `)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    // Flatten the data structure to match what Admin component expects
+    const flattenedData = data.map(item => {
+      const profile = Array.isArray(item.profiles) ? item.profiles[0] : item.profiles;
+      return {
+        id: item.id,
+        name: item.name,
+        gender: item.gender,
+        date_of_birth: item.date_of_birth,
+        whatsapp_number: item.whatsapp_number,
+        instagram_handle: item.instagram_handle,
+        bio: profile?.bio || '',
+        relationship_status: profile?.relationship_status || '',
+        interest_1: profile?.interest_1 || '',
+        interest_1_desc: profile?.interest_1 || '',
+        interest_2: profile?.interest_2 || '',
+        interest_2_desc: profile?.interest_2 || '',
+        interest_3: profile?.interest_3 || '',
+        interest_3_desc: profile?.interest_3 || ''
+      };
+    });
+
+    res.json(flattenedData);
+  } catch (err) {
+    console.error('Error fetching pending registrations:', err);
+    res.status(500).json({ error: "Failed to fetch pending registrations" });
+  }
+});
+
+// Admin: Approve user and generate credentials
+app.post("/api/admin/approve", async (req, res) => {
+  const { userId } = req.body || {};
+  if (!userId) return res.status(400).json({ error: "Missing userId" });
+
+  try {
+    // Generate login ID and password
+    const loginId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+    const password = Math.random().toString(36).substr(2, 8);
+    
+    // Hash the password
+    const bcrypt = await import('bcrypt');
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    // Update user status and add credentials
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({
+        status: 'approved',
+        login_id: loginId,
+        password_hash: passwordHash
+      })
+      .eq('id', userId);
+
+    if (updateError) {
+      throw updateError;
+    }
+
+    console.log(`User ${userId} approved with login ID: ${loginId}`);
+
+    res.json({
+      ok: true,
+      message: "User approved successfully",
+      credentials: {
+        loginId,
+        password
+      }
+    });
+  } catch (err) {
+    console.error('Error approving user:', err);
+    res.status(500).json({ error: "Failed to approve user" });
   }
 });
 
