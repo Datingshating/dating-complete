@@ -356,6 +356,32 @@ export function Dashboard(){
                 >
                   👤 View Profile
                 </button>
+                <Link
+                  to="/terms"
+                  onClick={() => setShowProfileDropdown(false)}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    background: 'transparent',
+                    border: 'none',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    color: '#2c2c2c',
+                    borderBottom: '1px solid #f1f3f4',
+                    transition: 'background 0.2s ease',
+                    textDecoration: 'none',
+                    display: 'block'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#f8f9fa'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent'
+                  }}
+                >
+                  📋 Terms & Conditions
+                </Link>
                 <button
                   onClick={handleLogout}
                   style={{

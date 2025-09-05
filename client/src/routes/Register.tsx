@@ -23,6 +23,7 @@ export function Register(){
   const [status,setStatus]=useState<string|undefined>()
   const [isMobile, setIsMobile] = useState(false)
   const [selectedInterests, setSelectedInterests] = useState<string[]>([])
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
 
   // Check screen size on mount and resize
   useEffect(() => {
@@ -109,6 +110,10 @@ export function Register(){
     e.preventDefault()
     if (selectedInterests.length !== 6) {
       setStatus('Please select exactly 6 interests')
+      return
+    }
+    if (!acceptedTerms) {
+      setStatus('Please accept the Terms and Conditions to continue')
       return
     }
     try{
@@ -227,10 +232,37 @@ export function Register(){
             )}
           </div>
           
+          {/* Terms and Conditions Checkbox */}
+          <div className="flex items-start gap-3 p-4 bg-muted/50 rounded-lg border border-border">
+            <input
+              type="checkbox"
+              id="terms-checkbox"
+              checked={acceptedTerms}
+              onChange={(e) => setAcceptedTerms(e.target.checked)}
+              className="mt-1 w-5 h-5 text-primary bg-background border-border rounded focus:ring-primary focus:ring-2"
+            />
+            <label htmlFor="terms-checkbox" className="text-sm text-muted-foreground leading-relaxed cursor-pointer">
+              I agree to the{' '}
+              <Link 
+                to="/terms" 
+                target="_blank"
+                className="text-primary hover:text-primary/80 underline font-medium transition-colors"
+              >
+                Terms and Conditions
+              </Link>
+              {' '}and understand that I must comply with the community guidelines and safety requirements.
+            </label>
+          </div>
+          
           <div className="flex flex-col md:flex-row gap-4 justify-center mt-10">
             <button 
-              className="bg-primary text-primary-foreground font-bold px-8 py-4 rounded-lg text-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1" 
+              className={`font-bold px-8 py-4 rounded-lg text-lg shadow-lg transition-all duration-300 ${
+                acceptedTerms 
+                  ? 'bg-primary text-primary-foreground hover:shadow-xl hover:-translate-y-1' 
+                  : 'bg-muted text-muted-foreground cursor-not-allowed opacity-60'
+              }`}
               type="submit"
+              disabled={!acceptedTerms}
             >
               Submit for review
             </button>
