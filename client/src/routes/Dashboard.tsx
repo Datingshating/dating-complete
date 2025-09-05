@@ -2568,27 +2568,66 @@ function RequestsSection({ incoming, onAccepted, userId, onViewProfile }: {
   onViewProfile: (requestItem: any) => void;
 }) {
   return (
-    <div>
-          {incoming.length === 0 ? (
+    <div style={{ padding: '0 16px' }}>
+      {incoming.length === 0 ? (
         <div className="responsive-empty" style={{
           textAlign: 'center', 
           padding: '40px 20px',
-          background: '#F5F1E8',
+          background: '#FAF7F3',
           borderRadius: '16px',
-          border: '1px solid #107980',
-          margin: '20px 0'
+          border: '1px solid #E6DFD4',
+          margin: '20px 0',
+          boxShadow: '0 1px 3px rgba(17, 24, 39, 0.06)'
         }}>
-          <svg width="48" height="48" fill="#107980" viewBox="0 0 24 24" style={{marginBottom: 16}}>
+          <svg width="48" height="48" fill="#0F766E" viewBox="0 0 24 24" style={{marginBottom: 16}}>
             <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
           </svg>
-          <h3 style={{margin: '0 0 8px 0', color: '#000000', fontSize: '18px', fontWeight: 600}}>No pending requests</h3>
-          <p style={{color: '#000000', margin: 0, fontSize: '14px', opacity: 0.8}}>When someone sends you a request, it will appear here.</p>
+          <h3 style={{margin: '0 0 8px 0', color: '#1F2937', fontSize: '18px', fontWeight: 600}}>No pending requests</h3>
+          <p style={{color: '#5B6068', margin: 0, fontSize: '14px'}}>When someone sends you a request, it will appear here.</p>
         </div>
-          ) : (
-        <div className="responsive-matches" style={{display: 'grid', gap: 12}}>
-          {incoming.map(r => (
+      ) : (
+        <div>
+          {/* Section Header */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '20px',
+            padding: '0 4px'
+          }}>
+            <h2 style={{
+              margin: 0,
+              fontSize: '20px',
+              fontWeight: '600',
+              color: '#1F2937'
+            }}>
+              New Requests
+            </h2>
+            <div style={{
+              background: '#0F766E',
+              color: 'white',
+              borderRadius: '12px',
+              padding: '4px 8px',
+              fontSize: '12px',
+              fontWeight: '600',
+              minWidth: '20px',
+              textAlign: 'center'
+            }}>
+              {incoming.length}
+            </div>
+          </div>
+          
+          {/* Request Cards */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+            paddingBottom: '100px' // Extra space to prevent footer overlap
+          }}>
+            {incoming.map(r => (
               <RequestRow key={r.id} item={r} me={userId} onAccepted={() => onAccepted(r.id)} onViewProfile={() => onViewProfile(r)} />
-          ))}
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -3492,74 +3531,134 @@ function RequestRow({item,me,onAccepted,onViewProfile}:{item:{id:string;from_use
   }
   
   return (
-    <div className="match-item" style={{
-      padding: '16px', 
-      background: '#F5F1E8',
-      borderBottom: '1px solid #107980', 
-      display: 'flex', 
-      justifyContent: 'space-between', 
-      alignItems: 'center',
-      transition: 'all 0.2s ease',
-      cursor: 'pointer'
-    }}
-    onClick={(e) => {
-      // Only trigger profile view if the click is not on the Accept button
-      const target = e.target as HTMLElement
-      if (!target.closest('button')) {
-        onViewProfile()
-      }
-    }}
-    onMouseEnter={(e) => {
-      e.currentTarget.style.background = '#EDE8D0'
-    }}
-    onMouseLeave={(e) => {
-      e.currentTarget.style.background = '#F5F1E8'
-    }}>
-      <div style={{flex: 1}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8}}>
-          <div className="match-avatar" style={{
-            width: 40,
-            height: 40,
-            borderRadius: '50%',
-            background: '#107980',
+    <div 
+      className="request-card" 
+      style={{
+        background: '#FAF7F3',
+        border: '1px solid #E6DFD4',
+        borderRadius: '16px',
+        padding: '20px',
+        boxShadow: '0 1px 3px rgba(17, 24, 39, 0.06)',
+        transition: 'all 0.2s ease',
+        cursor: 'pointer',
+        position: 'relative'
+      }}
+      onClick={(e) => {
+        // Only trigger profile view if the click is not on the Accept button
+        const target = e.target as HTMLElement
+        if (!target.closest('button')) {
+          onViewProfile()
+        }
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = 'translateY(-2px)'
+        e.currentTarget.style.boxShadow = '0 4px 12px rgba(17, 24, 39, 0.12)'
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'translateY(0)'
+        e.currentTarget.style.boxShadow = '0 1px 3px rgba(17, 24, 39, 0.06)'
+      }}
+    >
+      {/* Top Row: Avatar + Name + Date */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        marginBottom: '16px'
+      }}>
+        {/* Avatar */}
+        <div className="request-avatar" style={{
+          width: '40px',
+          height: '40px',
+          borderRadius: '50%',
+          background: '#0F766E',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'white',
+          fontSize: '16px',
+          fontWeight: 'bold',
+          flexShrink: 0
+        }}>
+          {item.name?.charAt(0).toUpperCase() || item.from_user_id.charAt(0).toUpperCase()}
+        </div>
+        
+        {/* Name and Date */}
+        <div style={{ flex: 1 }}>
+          <div style={{
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-            fontSize: '16px',
-            fontWeight: 'bold',
-            boxShadow: '0 2px 8px rgba(16, 121, 128, 0.2)'
+            justifyContent: 'space-between',
+            marginBottom: '2px'
           }}>
-            {item.name?.charAt(0).toUpperCase() || item.from_user_id.charAt(0).toUpperCase()}
-          </div>
-        <div>
-            <div className="match-name" style={{fontWeight: 600, color: '#000000', fontSize: '16px', marginBottom: '4px'}}>
+            <h3 className="request-name" style={{
+              margin: 0,
+              fontSize: '16px',
+              fontWeight: '600',
+              color: '#1F2937',
+              lineHeight: 1.2
+            }}>
               {item.name || `User ${item.from_user_id.slice(0,8)}…`}
-        </div>
-            <div style={{color: '#000000', fontSize: '12px', opacity: 0.7}}>
+            </h3>
+            <span className="request-date" style={{
+              fontSize: '13px',
+              color: '#7C7C7C',
+              fontWeight: '400'
+            }}>
               {new Date(item.created_at).toLocaleDateString()}
+            </span>
+          </div>
+        </div>
       </div>
-          </div>
+
+      {/* Message Snippet */}
+      <div className="request-message" style={{
+        color: '#5B6068',
+        fontSize: '14px',
+        lineHeight: 1.4,
+        marginBottom: '12px',
+        fontStyle: 'italic'
+      }}>
+        "{item.message || 'No message'}"
+      </div>
+
+      {/* Bio Preview */}
+      {item.bio && (
+        <div className="request-bio" style={{
+          color: '#5B6068',
+          fontSize: '13px',
+          lineHeight: 1.4,
+          marginBottom: '12px',
+          display: '-webkit-box',
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: 'vertical',
+          overflow: 'hidden'
+        }}>
+          {item.bio}
         </div>
-        <div style={{color: '#000000', lineHeight: 1.4, marginBottom: 8, fontSize: '13px', opacity: 0.8}}>
-          "{item.message || 'No message'}"
-        </div>
-        {item.bio && (
-          <div style={{color: '#000000', fontSize: '12px', lineHeight: 1.4, marginBottom: '6px'}}>
-            {item.bio.length > 80 ? item.bio.substring(0, 80) + '...' : item.bio}
-          </div>
-        )}
+      )}
+
+      {/* Bottom Row: Location + Accept Button */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '12px',
+        flexWrap: 'wrap'
+      }}>
+        {/* Location Tag */}
         {item.location && (
-          <div className="match-tag" style={{
-            color: '#000000', 
-            fontSize: '11px', 
-            marginTop: '4px',
+          <div className="request-location" style={{
             display: 'inline-flex',
             alignItems: 'center',
             gap: '4px',
-            background: '#EDE8D0',
-            padding: '2px 6px',
-            borderRadius: '6px'
+            background: '#EFE8DE',
+            color: '#5B6068',
+            fontSize: '12px',
+            fontWeight: '500',
+            padding: '4px 8px',
+            borderRadius: '999px',
+            flexShrink: 0
           }}>
             <svg width="10" height="10" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
@@ -3567,33 +3666,53 @@ function RequestRow({item,me,onAccepted,onViewProfile}:{item:{id:string;from_use
             {item.location}
           </div>
         )}
+
+        {/* Accept Button */}
+        <button 
+          className="request-accept-btn"
+          style={{
+            background: '#FAF7F3',
+            border: '1.5px solid #0F766E',
+            color: '#0F766E',
+            borderRadius: '999px',
+            height: '36px',
+            padding: '0 16px',
+            fontSize: '14px',
+            fontWeight: '500',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            opacity: isAccepting ? 0.7 : 1,
+            flexShrink: 0,
+            minWidth: '80px'
+          }} 
+          onClick={accept}
+          disabled={isAccepting}
+          onMouseEnter={(e) => {
+            if (!isAccepting) {
+              e.currentTarget.style.background = '#E6F2F1'
+              e.currentTarget.style.borderColor = '#0B5C56'
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!isAccepting) {
+              e.currentTarget.style.background = '#FAF7F3'
+              e.currentTarget.style.borderColor = '#0F766E'
+            }
+          }}
+          onMouseDown={(e) => {
+            if (!isAccepting) {
+              e.currentTarget.style.boxShadow = 'inset 0 1px 2px rgba(0, 0, 0, 0.1)'
+            }
+          }}
+          onMouseUp={(e) => {
+            if (!isAccepting) {
+              e.currentTarget.style.boxShadow = 'none'
+            }
+          }}
+        >
+          {isAccepting ? 'Accepting...' : 'Accept'}
+        </button>
       </div>
-      <button 
-        className="view-profile-btn"
-        style={{
-          background: '#107980',
-          color: 'white',
-          border: 'none',
-          borderRadius: '8px',
-          minWidth: '80px',
-          padding: '8px 12px',
-          fontSize: '12px',
-          fontWeight: 600,
-          cursor: 'pointer',
-          transition: 'all 0.2s ease',
-          opacity: isAccepting ? 0.7 : 1
-        }} 
-        onClick={accept}
-        disabled={isAccepting}
-        onMouseEnter={(e) => {
-          if (!isAccepting) e.currentTarget.style.background = '#0d6b71'
-        }}
-        onMouseLeave={(e) => {
-          if (!isAccepting) e.currentTarget.style.background = '#107980'
-        }}
-      >
-        {isAccepting ? 'Accepting...' : 'Accept'}
-      </button>
     </div>
   )
 }

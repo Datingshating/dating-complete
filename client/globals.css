@@ -885,6 +885,46 @@ a:hover {
     color: #0F766E !important;
     border: 1.5px solid #0F766E !important;
   }
+
+  /* Request cards desktop responsive styles */
+  .request-card {
+    padding: 24px !important;
+    border-radius: 18px !important;
+  }
+  
+  .request-card .request-avatar {
+    width: 44px !important;
+    height: 44px !important;
+    font-size: 18px !important;
+  }
+  
+  .request-card .request-name {
+    font-size: 18px !important;
+  }
+  
+  .request-card .request-date {
+    font-size: 14px !important;
+  }
+  
+  .request-card .request-message {
+    font-size: 15px !important;
+  }
+  
+  .request-card .request-bio {
+    font-size: 14px !important;
+  }
+  
+  .request-card .request-location {
+    font-size: 13px !important;
+    padding: 5px 10px !important;
+  }
+  
+  .request-card .request-accept-btn {
+    height: 40px !important;
+    padding: 0 18px !important;
+    font-size: 15px !important;
+    min-width: 90px !important;
+  }
 }
 
 /* Header Design System */
@@ -1456,6 +1496,46 @@ a:hover {
     color: #0F766E !important;
     border: 1.5px solid #0F766E !important;
   }
+
+  /* Request cards responsive styles */
+  .request-card {
+    padding: 16px !important;
+    border-radius: 14px !important;
+  }
+  
+  .request-card .request-avatar {
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 14px !important;
+  }
+  
+  .request-card .request-name {
+    font-size: 15px !important;
+  }
+  
+  .request-card .request-date {
+    font-size: 12px !important;
+  }
+  
+  .request-card .request-message {
+    font-size: 13px !important;
+  }
+  
+  .request-card .request-bio {
+    font-size: 12px !important;
+  }
+  
+  .request-card .request-location {
+    font-size: 11px !important;
+    padding: 3px 6px !important;
+  }
+  
+  .request-card .request-accept-btn {
+    height: 32px !important;
+    padding: 0 12px !important;
+    font-size: 13px !important;
+    min-width: 70px !important;
+  }
   
   /* Responsive empty state */
   .responsive-empty {
@@ -1585,6 +1665,46 @@ a:hover {
     background: #FAF7F3 !important;
     color: #0F766E !important;
     border: 1.5px solid #0F766E !important;
+  }
+
+  /* Request cards tablet responsive styles */
+  .request-card {
+    padding: 18px !important;
+    border-radius: 15px !important;
+  }
+  
+  .request-card .request-avatar {
+    width: 38px !important;
+    height: 38px !important;
+    font-size: 15px !important;
+  }
+  
+  .request-card .request-name {
+    font-size: 16px !important;
+  }
+  
+  .request-card .request-date {
+    font-size: 13px !important;
+  }
+  
+  .request-card .request-message {
+    font-size: 14px !important;
+  }
+  
+  .request-card .request-bio {
+    font-size: 13px !important;
+  }
+  
+  .request-card .request-location {
+    font-size: 12px !important;
+    padding: 4px 7px !important;
+  }
+  
+  .request-card .request-accept-btn {
+    height: 34px !important;
+    padding: 0 14px !important;
+    font-size: 14px !important;
+    min-width: 75px !important;
   }
 }
 
