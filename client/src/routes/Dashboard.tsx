@@ -2348,7 +2348,7 @@ function MatchesSection({ matches, onRefresh, onChatClick, onViewProfile }: {
   onViewProfile: (matchItem: MatchItem) => void;
 }) {
   return (
-    <div style={{ background: '#F7F3EC', minHeight: '100vh', padding: '16px' }}>
+    <div style={{ background: '#F7F3EC', minHeight: '100vh', padding: '16px', paddingBottom: '80px' }}>
       {/* Optional subtitle */}
       <div style={{
         fontSize: '12px',
@@ -3311,7 +3311,7 @@ function ChatSection({ matches, userId, selectedChatUser, setSelectedChatUser }:
               <div style={{fontSize: '14px', color: '#5B6068'}}>Start matching to begin chatting!</div>
             </div>
           ) : (
-            <div className="responsive-matches" style={{padding: '16px'}}>
+            <div className="responsive-matches" style={{padding: '16px', paddingBottom: '80px'}}>
               {matches.map(match => (
                 <div 
                   key={match.id}
