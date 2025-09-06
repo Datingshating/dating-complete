@@ -1927,22 +1927,25 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
             zIndex: 1
           }}>
             <h3 className="m-0 mb-4 font-heading font-bold text-card-foreground section-title" style={{
-              fontSize: '16px',
+              fontSize: '14px',
               marginBottom: '12px',
-              color: '#A67C52',
-              fontFamily: 'Poppins, sans-serif',
-              fontWeight: '600',
+              color: '#A0522D',
+              fontFamily: 'Inter, sans-serif',
+              fontWeight: '700',
               textTransform: 'uppercase',
-              letterSpacing: '0.02em'
+              letterSpacing: '0.05em',
+              lineHeight: '1.4'
             }}>
               About {currentProfile?.name || 'Unknown'}
             </h3>
             <div className="leading-relaxed text-card-foreground font-sans bio-text" style={{
-              fontSize: '15px',
-              lineHeight: '1.8',
+              fontSize: '14px',
+              
               fontFamily: 'Inter, sans-serif',
-              color: '#2E2E2E',
-              fontWeight: '400'
+              color: '#333333',
+              fontWeight: '400',
+              letterSpacing: '0.05em',
+              lineHeight: '1.4'
             }}>
               {currentProfile?.bio || 'No bio available'}
             </div>
@@ -1964,21 +1967,22 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
             zIndex: 1
           }}>
             <h3 className="m-0 mb-4 font-heading font-bold text-card-foreground section-title" style={{
-              fontSize: '16px',
+              fontSize: '14px',
               marginBottom: '12px',
-              color: '#A67C52',
-              fontFamily: 'Poppins, sans-serif',
-              fontWeight: '600',
+              color: '#A0522D',
+              fontFamily: 'Inter, sans-serif',
+              fontWeight: '700',
               textTransform: 'uppercase',
-              letterSpacing: '0.02em'
+              letterSpacing: '0.05em',
+              lineHeight: '1.4'
             }}>
               Partner Expectations
             </h3>
             <div className="leading-relaxed text-card-foreground font-sans expectations-text" style={{
-              fontSize: '15px',
-              lineHeight: '1.8',
+              fontSize: '14px',
+              lineHeight: '1.6',
               fontFamily: 'Inter, sans-serif',
-              color: '#2E2E2E',
+              color: '#333333',
               fontWeight: '400'
             }}>
               {currentProfile?.partner_expectations || 'No partner expectations available'}
@@ -2010,16 +2014,16 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
             }}>
               Interests
             </h3>
-            <div style={{
+            <div className="interest-container" style={{
               position: 'relative',
-              height: '300px',
+              height: '280px',
               overflow: 'hidden'
             }}>
-              {/* Interest Bubble 1 */}
-              <div style={{
+              {/* Interest Bubble 1 - Left Column, Top */}
+              <div className="interest-bubble" style={{
                 position: 'absolute',
-                top: '40px',
-                left: '24px',
+                top: '30px',
+                left: '20px',
                 width: '75px',
                 height: '75px',
                 borderRadius: '50%',
@@ -2040,11 +2044,11 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
                 {currentProfile?.interest_1 || 'Reading'}
               </div>
 
-              {/* Interest Bubble 2 */}
-              <div style={{
+              {/* Interest Bubble 2 - Left Column, Bottom */}
+              <div className="interest-bubble" style={{
                 position: 'absolute',
-                top: '30px',
-                left: '140px',
+                top: '140px',
+                left: '20px',
                 width: '70px',
                 height: '70px',
                 borderRadius: '50%',
@@ -2065,11 +2069,11 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
                 {currentProfile?.interest_2 || 'Travel'}
               </div>
 
-              {/* Interest Bubble 3 */}
-              <div style={{
+              {/* Interest Bubble 3 - Middle Column, Top */}
+              <div className="interest-bubble" style={{
                 position: 'absolute',
                 top: '50px',
-                left: '230px',
+                left: '120px',
                 width: '75px',
                 height: '75px',
                 borderRadius: '50%',
@@ -2090,11 +2094,11 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
                 {currentProfile?.interest_3 || 'Music'}
               </div>
 
-              {/* Interest Bubble 4 */}
-              <div style={{
+              {/* Interest Bubble 4 - Middle Column, Bottom */}
+              <div className="interest-bubble" style={{
                 position: 'absolute',
-                top: '130px',
-                left: '80px',
+                top: '160px',
+                left: '120px',
                 width: '65px',
                 height: '65px',
                 borderRadius: '50%',
@@ -2115,11 +2119,11 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
                 {currentProfile?.interest_4 || 'Cooking'}
               </div>
 
-              {/* Interest Bubble 5 */}
-              <div style={{
+              {/* Interest Bubble 5 - Right Column, Top */}
+              <div className="interest-bubble" style={{
                 position: 'absolute',
-                top: '120px',
-                left: '160px',
+                top: '40px',
+                left: '220px',
                 width: '70px',
                 height: '70px',
                 borderRadius: '50%',
@@ -2140,11 +2144,11 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
                 {currentProfile?.interest_5 || 'Photography'}
               </div>
 
-              {/* Interest Bubble 6 */}
-              <div style={{
+              {/* Interest Bubble 6 - Right Column, Bottom */}
+              <div className="interest-bubble" style={{
                 position: 'absolute',
-                top: '140px',
-                left: '250px',
+                top: '150px',
+                left: '220px',
                 width: '65px',
                 height: '65px',
                 borderRadius: '50%',
@@ -3915,20 +3919,21 @@ function ProfileDisplay({ me }: { me: any }) {
       }}>
         <h3 className="section-title" style={{
           margin: '0 0 12px 0',
-          fontSize: '16px',
-          fontWeight: '600',
-          color: '#A67C52',
-          fontFamily: 'Poppins, sans-serif',
+          fontSize: '14px',
+          fontWeight: '700',
+          color: '#A0522D',
+          fontFamily: 'Inter, sans-serif',
           textTransform: 'uppercase',
-          letterSpacing: '0.02em'
+          letterSpacing: '0.05em',
+          lineHeight: '1.4'
         }}>
           About Me
         </h3>
         <div className="bio-text" style={{
           padding: '20px',
-          lineHeight: '1.8',
-          color: '#2E2E2E',
-          fontSize: '15px',
+          lineHeight: '1.6',
+          color: '#333333',
+          fontSize: '14px',
           fontFamily: 'Inter, sans-serif',
           fontWeight: '400',
           background: 'rgba(255, 255, 255, 0.7)',
@@ -3957,20 +3962,21 @@ function ProfileDisplay({ me }: { me: any }) {
       }}>
         <h3 className="section-title" style={{
           margin: '0 0 12px 0',
-          fontSize: '16px',
-          fontWeight: '600',
-          color: '#A67C52',
-          fontFamily: 'Poppins, sans-serif',
+          fontSize: '14px',
+          fontWeight: '700',
+          color: '#A0522D',
+          fontFamily: 'Inter, sans-serif',
           textTransform: 'uppercase',
-          letterSpacing: '0.02em'
+          letterSpacing: '0.05em',
+          lineHeight: '1.4'
         }}>
           Partner Expectations
         </h3>
         <div className="partner-expectations-text" style={{
           padding: '20px',
-          lineHeight: '1.8',
-          color: '#2E2E2E',
-          fontSize: '15px',
+          lineHeight: '1.6',
+          color: '#333333',
+          fontSize: '14px',
           fontFamily: 'Inter, sans-serif',
           fontWeight: '400',
           background: 'rgba(255, 255, 255, 0.7)',

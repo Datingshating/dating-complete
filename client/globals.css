@@ -1979,3 +1979,96 @@ a:hover {
     grid-column: span 1 !important;
   }
 }
+
+/* Interest Bubbles Responsive Styles */
+@media (max-width: 480px) {
+  /* Mobile interest bubbles - make them smaller and adjust positioning */
+  .responsive-dating-card .interest-bubble {
+    width: 60px !important;
+    height: 60px !important;
+    font-size: 9px !important;
+    padding: 4px !important;
+  }
+  
+  /* Adjust interest container height for mobile */
+  .responsive-dating-card .interest-container {
+    height: 240px !important;
+  }
+  
+  /* Reposition bubbles for mobile 3x2 layout */
+  .responsive-dating-card .interest-bubble:nth-child(1) {
+    top: 20px !important;
+    left: 15px !important;
+  }
+  
+  .responsive-dating-card .interest-bubble:nth-child(2) {
+    top: 110px !important;
+    left: 15px !important;
+  }
+  
+  .responsive-dating-card .interest-bubble:nth-child(3) {
+    top: 30px !important;
+    left: 90px !important;
+  }
+  
+  .responsive-dating-card .interest-bubble:nth-child(4) {
+    top: 120px !important;
+    left: 90px !important;
+  }
+  
+  .responsive-dating-card .interest-bubble:nth-child(5) {
+    top: 25px !important;
+    left: 165px !important;
+  }
+  
+  .responsive-dating-card .interest-bubble:nth-child(6) {
+    top: 115px !important;
+    left: 165px !important;
+  }
+}
+
+@media (min-width: 481px) and (max-width: 768px) {
+  /* Tablet interest bubbles - slightly larger than mobile */
+  .responsive-dating-card .interest-bubble {
+    width: 65px !important;
+    height: 65px !important;
+    font-size: 10px !important;
+    padding: 5px !important;
+  }
+  
+  /* Adjust interest container height for tablet */
+  .responsive-dating-card .interest-container {
+    height: 260px !important;
+  }
+  
+  /* Reposition bubbles for tablet 3x2 layout */
+  .responsive-dating-card .interest-bubble:nth-child(1) {
+    top: 25px !important;
+    left: 18px !important;
+  }
+  
+  .responsive-dating-card .interest-bubble:nth-child(2) {
+    top: 130px !important;
+    left: 18px !important;
+  }
+  
+  .responsive-dating-card .interest-bubble:nth-child(3) {
+    top: 40px !important;
+    left: 105px !important;
+  }
+  
+  .responsive-dating-card .interest-bubble:nth-child(4) {
+    top: 145px !important;
+    left: 105px !important;
+  }
+  
+  .responsive-dating-card .interest-bubble:nth-child(5) {
+    top: 35px !important;
+    left: 192px !important;
+  }
+  
+  .responsive-dating-card .interest-bubble:nth-child(6) {
+    top: 140px !important;
+    left: 192px !important;
+  }
+}
