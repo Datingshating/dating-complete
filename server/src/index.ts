@@ -329,7 +329,7 @@ app.post("/api/login", async (req, res) => {
         is_admin: data.is_admin
       },
       process.env.JWT_SECRET || 'your-secret-key',
-      { expiresIn: '7d' }
+      { expiresIn: '10d' }
     );
 
     // Set JWT token in HTTP-only cookie
@@ -497,98 +497,6 @@ app.put("/api/me", async (req, res) => {
   } catch (err) {
     console.error('Error updating profile:', err);
     res.status(500).json({ error: "Failed to update" });
-  }
-});
-
-// Privacy: Change password and login ID
-app.put("/api/privacy/change-credentials", async (req, res) => {
-  const { userId, currentPassword, newLoginId, newPassword, confirmPassword } = req.body || {};
-  
-  if (!userId || !currentPassword || !newLoginId || !newPassword || !confirmPassword) {
-    return res.status(400).json({ error: "Missing required fields" });
-  }
-
-  // Validate new password confirmation
-  if (newPassword !== confirmPassword) {
-    return res.status(400).json({ error: "New password and confirmation do not match" });
-  }
-
-  // Validate new login ID (minimum 6 characters)
-  if (newLoginId.length < 6) {
-    return res.status(400).json({ error: "Login ID must be at least 6 characters long" });
-  }
-
-  // Validate new password (8+ chars, lowercase, uppercase, symbol)
-  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
-  if (!passwordRegex.test(newPassword)) {
-    return res.status(400).json({ 
-      error: "Password must be at least 8 characters long and contain at least one lowercase letter, one uppercase letter, and one special character" 
-    });
-  }
-
-  try {
-    // Get current user data
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('id, password_hash, login_id, status')
-      .eq('id', userId)
-      .single();
-
-    if (userError || !userData) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    if (userData.status !== 'approved') {
-      return res.status(403).json({ error: "User not approved" });
-    }
-
-    // Verify current password
-    const bcrypt = await import('bcrypt');
-    const isValidPassword = await bcrypt.compare(currentPassword, userData.password_hash);
-    
-    if (!isValidPassword) {
-      return res.status(401).json({ error: "Current password is incorrect" });
-    }
-
-    // Check if new login ID is already taken by another user
-    if (newLoginId !== userData.login_id) {
-      const { data: existingUser, error: checkError } = await supabase
-        .from('users')
-        .select('id')
-        .eq('login_id', newLoginId)
-        .neq('id', userId)
-        .single();
-
-      if (existingUser) {
-        return res.status(400).json({ error: "Login ID is already taken" });
-      }
-    }
-
-    // Hash new password
-    const saltRounds = 10;
-    const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
-
-    // Update user credentials
-    const { error: updateError } = await supabase
-      .from('users')
-      .update({
-        login_id: newLoginId,
-        password_hash: newPasswordHash,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', userId);
-
-    if (updateError) {
-      throw updateError;
-    }
-
-    res.json({ 
-      ok: true, 
-      message: "Credentials updated successfully" 
-    });
-  } catch (err) {
-    console.error('Error updating credentials:', err);
-    res.status(500).json({ error: "Failed to update credentials" });
   }
 });
 
