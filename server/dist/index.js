@@ -241,7 +241,7 @@ app.post("/api/login", async (req, res) => {
     try {
         const { data, error } = await supabase
             .from('users')
-            .select('id, password_hash, name')
+            .select('id, password_hash, name, is_admin')
             .eq('login_id', loginId)
             .eq('status', 'approved')
             .single();
@@ -258,7 +258,8 @@ app.post("/api/login", async (req, res) => {
         const token = jwt.sign({
             userId: data.id,
             loginId: loginId,
-            name: data.name
+            name: data.name,
+            is_admin: data.is_admin
         }, process.env.JWT_SECRET || 'your-secret-key', { expiresIn: '7d' });
         // Set JWT token in HTTP-only cookie
         res.cookie('authToken', token, {
@@ -271,6 +272,7 @@ app.post("/api/login", async (req, res) => {
             ok: true,
             userId: data.id,
             name: data.name,
+            is_admin: data.is_admin,
             token: token // Also send token in response for client-side storage
         });
     }
@@ -300,6 +302,33 @@ app.post("/api/logout", (req, res) => {
     res.clearCookie('authToken');
     res.json({ ok: true, message: "Logged out successfully" });
 });
+// Admin verification endpoint (extra security check)
+app.get("/api/admin/verify", authenticateToken, async (req, res) => {
+    const userId = req.user.userId;
+    try {
+        const { data, error } = await supabase
+            .from('users')
+            .select('id, is_admin, status')
+            .eq('id', userId)
+            .single();
+        if (error || !data) {
+            return res.status(404).json({ error: "User not found" });
+        }
+        // Extra security: Check if user is admin and approved
+        if (!data.is_admin || data.status !== 'approved') {
+            return res.status(403).json({ error: "Admin access denied" });
+        }
+        res.json({
+            ok: true,
+            is_admin: true,
+            user_id: userId
+        });
+    }
+    catch (err) {
+        console.error('Admin verification error:', err);
+        res.status(500).json({ error: "Admin verification failed" });
+    }
+});
 // Current user: fetch profile (protected route)
 app.get("/api/me", authenticateToken, async (req, res) => {
     const userId = req.user.userId;
@@ -307,7 +336,7 @@ app.get("/api/me", authenticateToken, async (req, res) => {
         const { data, error } = await supabase
             .from('users')
             .select(`
-          id, name, gender, date_of_birth, whatsapp_number, instagram_handle, status, location, custom_location,
+          id, name, gender, date_of_birth, whatsapp_number, instagram_handle, status, location, custom_location, is_admin,
           profiles (
             bio, relationship_status, interest_1, interest_2, interest_3, interest_4, interest_5, interest_6
           )
@@ -1548,6 +1577,199 @@ app.get("/api/admin/profile/:userId", async (req, res) => {
     catch (err) {
         console.error('Failed to fetch user profile:', err);
         res.status(500).json({ error: "Failed to fetch user profile" });
+    }
+});
+// Admin: Manually assign/update subscription pack for a user
+app.post("/api/admin/assign-pack", authenticateToken, async (req, res) => {
+    const { userId, packId, amount, notes } = req.body || {};
+    if (!userId || !packId) {
+        return res.status(400).json({ error: "Missing userId or packId" });
+    }
+    try {
+        // Verify user exists and is approved
+        const { data: userData, error: userError } = await supabase
+            .from('users')
+            .select('id, name, status')
+            .eq('id', userId)
+            .eq('status', 'approved')
+            .single();
+        if (userError || !userData) {
+            return res.status(404).json({ error: "User not found or not approved" });
+        }
+        // Get pack details
+        const packDetailsMap = {
+            starter: { name: 'Starter', matches: 5, requests: 50 },
+            intermediate: { name: 'Intermediate', matches: 8, requests: 100 },
+            pro: { name: 'Pro', matches: 15, requests: -1 } // -1 for unlimited
+        };
+        const packDetails = packDetailsMap[packId];
+        if (!packDetails) {
+            return res.status(400).json({ error: 'Invalid pack ID' });
+        }
+        // Create a manual payment order record for tracking
+        const manualOrderId = `admin_manual_${Date.now()}_${userId.slice(-8)}`;
+        const { error: orderError } = await supabase
+            .from('payment_orders')
+            .insert({
+            user_id: userId,
+            razorpay_order_id: manualOrderId,
+            pack_id: packId,
+            amount: (amount || 0) * 100, // Convert to paisa
+            currency: 'INR',
+            status: 'paid',
+            razorpay_payment_id: 'admin_manual_assignment'
+        });
+        if (orderError) {
+            throw orderError;
+        }
+        // Assign/update user pack
+        const { error: packError } = await supabase
+            .from('user_packs')
+            .upsert({
+            user_id: userId,
+            pack_id: packId,
+            pack_name: packDetails.name,
+            matches_total: packDetails.matches,
+            matches_remaining: packDetails.matches,
+            requests_total: packDetails.requests,
+            requests_remaining: packDetails.requests,
+            amount_paid: amount || 0,
+            purchased_at: new Date().toISOString(),
+            expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days
+        });
+        if (packError) {
+            throw packError;
+        }
+        console.log(`Admin manually assigned pack ${packId} to user ${userId} (${userData.name})`);
+        res.json({
+            success: true,
+            message: `${packDetails.name} pack assigned successfully to ${userData.name}`,
+            pack: {
+                id: packId,
+                name: packDetails.name,
+                matches: packDetails.matches,
+                requests: packDetails.requests,
+                amount: amount || 0
+            }
+        });
+    }
+    catch (err) {
+        console.error("Failed to assign pack:", err);
+        res.status(500).json({ error: "Failed to assign pack", details: err instanceof Error ? err.message : 'Unknown error' });
+    }
+});
+// Admin: Update user pack (extend, modify, or reset)
+app.put("/api/admin/update-pack", authenticateToken, async (req, res) => {
+    const { userId, action, value, notes } = req.body || {};
+    if (!userId || !action) {
+        return res.status(400).json({ error: "Missing userId or action" });
+    }
+    try {
+        // Get current pack
+        const { data: currentPack, error: packError } = await supabase
+            .from('user_packs')
+            .select('*')
+            .eq('user_id', userId)
+            .single();
+        if (packError && packError.code !== 'PGRST116') {
+            throw packError;
+        }
+        if (!currentPack) {
+            return res.status(404).json({ error: "No active pack found for this user" });
+        }
+        let updateData = {};
+        switch (action) {
+            case 'extend_matches':
+                updateData.matches_remaining = Math.max(0, currentPack.matches_remaining + (value || 0));
+                break;
+            case 'extend_requests':
+                if (currentPack.requests_remaining === -1) {
+                    return res.status(400).json({ error: "Cannot extend unlimited requests" });
+                }
+                updateData.requests_remaining = Math.max(0, currentPack.requests_remaining + (value || 0));
+                break;
+            case 'reset_matches':
+                updateData.matches_remaining = currentPack.matches_total;
+                break;
+            case 'reset_requests':
+                updateData.requests_remaining = currentPack.requests_total;
+                break;
+            case 'extend_expiry':
+                const currentExpiry = new Date(currentPack.expires_at);
+                const newExpiry = new Date(currentExpiry.getTime() + (value || 30) * 24 * 60 * 60 * 1000);
+                updateData.expires_at = newExpiry.toISOString();
+                break;
+            default:
+                return res.status(400).json({ error: "Invalid action" });
+        }
+        // Update the pack
+        const { error: updateError } = await supabase
+            .from('user_packs')
+            .update(updateData)
+            .eq('user_id', userId);
+        if (updateError) {
+            throw updateError;
+        }
+        console.log(`Admin updated pack for user ${userId}: ${action} with value ${value}`);
+        res.json({
+            success: true,
+            message: `Pack updated successfully: ${action}`,
+            updatedData: updateData
+        });
+    }
+    catch (err) {
+        console.error("Failed to update pack:", err);
+        res.status(500).json({ error: "Failed to update pack", details: err instanceof Error ? err.message : 'Unknown error' });
+    }
+});
+// Admin: Get user's current pack details
+app.get("/api/admin/user-pack/:userId", authenticateToken, async (req, res) => {
+    const { userId } = req.params;
+    if (!userId) {
+        return res.status(400).json({ error: "Missing userId" });
+    }
+    try {
+        const { data: packData, error: packError } = await supabase
+            .from('user_packs')
+            .select(`
+        *,
+        users!inner (
+          id, name, whatsapp_number, instagram_handle, login_id
+        )
+      `)
+            .eq('user_id', userId)
+            .single();
+        if (packError && packError.code !== 'PGRST116') {
+            throw packError;
+        }
+        if (!packData) {
+            return res.json({ pack: null, message: "No active pack found" });
+        }
+        // Flatten the data
+        const flattenedData = {
+            id: packData.id,
+            user_id: packData.user_id,
+            user_name: packData.users.name,
+            user_whatsapp: packData.users.whatsapp_number,
+            user_instagram: packData.users.instagram_handle,
+            user_login_id: packData.users.login_id,
+            pack_id: packData.pack_id,
+            pack_name: packData.pack_name,
+            matches_total: packData.matches_total,
+            matches_remaining: packData.matches_remaining,
+            requests_total: packData.requests_total,
+            requests_remaining: packData.requests_remaining,
+            amount_paid: packData.amount_paid,
+            purchased_at: packData.purchased_at,
+            expires_at: packData.expires_at,
+            created_at: packData.created_at,
+            updated_at: packData.updated_at
+        };
+        res.json({ pack: flattenedData });
+    }
+    catch (err) {
+        console.error("Failed to fetch user pack:", err);
+        res.status(500).json({ error: "Failed to fetch user pack", details: err instanceof Error ? err.message : 'Unknown error' });
     }
 });
 // Payment info redirect (WhatsApp) - Legacy

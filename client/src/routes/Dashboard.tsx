@@ -45,7 +45,7 @@ export function Dashboard(){
   const [selected, setSelected] = useState<Profile|undefined>()
   const [selectedMatchProfile, setSelectedMatchProfile] = useState<Profile|undefined>()
   const [me, setMe] = useState<any>(null)
-  const [activeTab, setActiveTab] = useState<'dating' | 'profile' | 'matches' | 'requests' | 'chat' | 'packs'>('dating')
+  const [activeTab, setActiveTab] = useState<'dating' | 'profile' | 'matches' | 'requests' | 'chat' | 'packs' | 'privacy'>('dating')
   const [filters, setFilters] = useState({
     ageRange: [18, 50],
     gender: '',
@@ -330,6 +330,18 @@ export function Dashboard(){
                   </svg>
                   View Profile
                 </button>
+                <button
+                  className="dropdown-item"
+                  onClick={() => {
+                    setActiveTab('privacy')
+                    setShowProfileDropdown(false)
+                  }}
+                >
+                  <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12,1L3,5V11C3,16.55 6.84,21.74 12,23C17.16,21.74 21,16.55 21,11V5L12,1M12,7C13.4,7 14.8,8.6 14.8,10V11.5C15.4,11.5 16,12.1 16,12.7V16.2C16,16.8 15.4,17.3 14.8,17.3H9.2C8.6,17.3 8,16.8 8,16.2V12.6C8,12.1 8.6,11.5 9.2,11.5V10C9.2,8.6 10.6,7 12,7M12,8.2C11.2,8.2 10.5,8.7 10.5,10V11.5H13.5V10C13.5,8.7 12.8,8.2 12,8.2Z"/>
+                  </svg>
+                  Privacy
+                </button>
                 <Link
                   to="/terms"
                   className="dropdown-item"
@@ -526,6 +538,12 @@ export function Dashboard(){
           {activeTab === 'packs' && (
             <div className="fade-in">
               <PacksSection userId={userId} />
+            </div>
+          )}
+
+          {activeTab === 'privacy' && (
+            <div className="fade-in">
+              <PrivacySection userId={userId} />
             </div>
           )}
         </div>
@@ -2373,6 +2391,282 @@ function ProfileSection({ me, onSaved }: { me: any; onSaved: () => void }) {
   )
 }
 
+// Privacy Section Component
+function PrivacySection({ userId }: { userId: string }) {
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newLoginId, setNewLoginId] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+
+  const validatePassword = (password: string) => {
+    const hasLower = /[a-z]/.test(password)
+    const hasUpper = /[A-Z]/.test(password)
+    const hasSymbol = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)
+    const hasMinLength = password.length >= 8
+    
+    return {
+      isValid: hasLower && hasUpper && hasSymbol && hasMinLength,
+      hasLower,
+      hasUpper,
+      hasSymbol,
+      hasMinLength
+    }
+  }
+
+  const validateLoginId = (id: string) => {
+    return id.length >= 6
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    setSuccess(null)
+
+    // Client-side validation
+    if (!currentPassword || !newLoginId || !newPassword || !confirmPassword) {
+      setError('All fields are required')
+      return
+    }
+
+    if (newPassword !== confirmPassword) {
+      setError('New password and confirmation do not match')
+      return
+    }
+
+    if (!validateLoginId(newLoginId)) {
+      setError('Login ID must be at least 6 characters long')
+      return
+    }
+
+    const passwordValidation = validatePassword(newPassword)
+    if (!passwordValidation.isValid) {
+      setError('Password must be at least 8 characters long and contain at least one lowercase letter, one uppercase letter, and one special character')
+      return
+    }
+
+    setIsLoading(true)
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/privacy/change-credentials`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        },
+        body: JSON.stringify({
+          userId,
+          currentPassword,
+          newLoginId,
+          newPassword,
+          confirmPassword
+        })
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setSuccess('Credentials updated successfully! Please log in again with your new credentials.')
+        // Clear form
+        setCurrentPassword('')
+        setNewLoginId('')
+        setNewPassword('')
+        setConfirmPassword('')
+        // Optionally redirect to login after a delay
+        setTimeout(() => {
+          localStorage.clear()
+          window.location.href = '/login'
+        }, 3000)
+      } else {
+        setError(data.error || 'Failed to update credentials')
+      }
+    } catch (err) {
+      setError('Network error. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const passwordValidation = validatePassword(newPassword)
+  const loginIdValidation = validateLoginId(newLoginId)
+
+  return (
+    <div style={{maxWidth: 600, margin: '0 auto', padding: '20px'}}>
+      <div style={{marginBottom: '30px'}}>
+        <h2 style={{color: '#333', marginBottom: '10px', fontSize: '24px', fontWeight: '600'}}>
+          Privacy Settings
+        </h2>
+        <p style={{color: '#666', fontSize: '14px'}}>
+          Change your login ID and password to keep your account secure.
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit} style={{background: '#fff', padding: '30px', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)'}}>
+        {error && (
+          <div style={{
+            background: '#fee',
+            color: '#c33',
+            padding: '12px',
+            borderRadius: '8px',
+            marginBottom: '20px',
+            border: '1px solid #fcc'
+          }}>
+            {error}
+          </div>
+        )}
+
+        {success && (
+          <div style={{
+            background: '#efe',
+            color: '#363',
+            padding: '12px',
+            borderRadius: '8px',
+            marginBottom: '20px',
+            border: '1px solid #cfc'
+          }}>
+            {success}
+          </div>
+        )}
+
+        <div style={{marginBottom: '20px'}}>
+          <label style={{display: 'block', marginBottom: '8px', fontWeight: '500', color: '#333'}}>
+            Current Password
+          </label>
+          <input
+            type="password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '12px',
+              border: '1px solid #ddd',
+              borderRadius: '8px',
+              fontSize: '16px',
+              boxSizing: 'border-box'
+            }}
+            placeholder="Enter your current password"
+            required
+          />
+        </div>
+
+        <div style={{marginBottom: '20px'}}>
+          <label style={{display: 'block', marginBottom: '8px', fontWeight: '500', color: '#333'}}>
+            New Login ID
+          </label>
+          <input
+            type="text"
+            value={newLoginId}
+            onChange={(e) => setNewLoginId(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '12px',
+              border: `1px solid ${loginIdValidation ? '#4CAF50' : newLoginId.length > 0 ? '#f44336' : '#ddd'}`,
+              borderRadius: '8px',
+              fontSize: '16px',
+              boxSizing: 'border-box'
+            }}
+            placeholder="Enter new login ID (min 6 characters)"
+            required
+          />
+          {newLoginId.length > 0 && !loginIdValidation && (
+            <p style={{color: '#f44336', fontSize: '12px', marginTop: '4px'}}>
+              Login ID must be at least 6 characters long
+            </p>
+          )}
+        </div>
+
+        <div style={{marginBottom: '20px'}}>
+          <label style={{display: 'block', marginBottom: '8px', fontWeight: '500', color: '#333'}}>
+            New Password
+          </label>
+          <input
+            type="password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '12px',
+              border: `1px solid ${passwordValidation.isValid ? '#4CAF50' : newPassword.length > 0 ? '#f44336' : '#ddd'}`,
+              borderRadius: '8px',
+              fontSize: '16px',
+              boxSizing: 'border-box'
+            }}
+            placeholder="Enter new password"
+            required
+          />
+          {newPassword.length > 0 && (
+            <div style={{marginTop: '8px', fontSize: '12px'}}>
+              <div style={{color: passwordValidation.hasMinLength ? '#4CAF50' : '#f44336'}}>
+                ✓ At least 8 characters
+              </div>
+              <div style={{color: passwordValidation.hasLower ? '#4CAF50' : '#f44336'}}>
+                ✓ Contains lowercase letter
+              </div>
+              <div style={{color: passwordValidation.hasUpper ? '#4CAF50' : '#f44336'}}>
+                ✓ Contains uppercase letter
+              </div>
+              <div style={{color: passwordValidation.hasSymbol ? '#4CAF50' : '#f44336'}}>
+                ✓ Contains special character
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div style={{marginBottom: '30px'}}>
+          <label style={{display: 'block', marginBottom: '8px', fontWeight: '500', color: '#333'}}>
+            Confirm New Password
+          </label>
+          <input
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '12px',
+              border: `1px solid ${confirmPassword.length > 0 && newPassword === confirmPassword ? '#4CAF50' : confirmPassword.length > 0 ? '#f44336' : '#ddd'}`,
+              borderRadius: '8px',
+              fontSize: '16px',
+              boxSizing: 'border-box'
+            }}
+            placeholder="Confirm your new password"
+            required
+          />
+          {confirmPassword.length > 0 && newPassword !== confirmPassword && (
+            <p style={{color: '#f44336', fontSize: '12px', marginTop: '4px'}}>
+              Passwords do not match
+            </p>
+          )}
+        </div>
+
+        <button
+          type="submit"
+          disabled={isLoading || !passwordValidation.isValid || !loginIdValidation || newPassword !== confirmPassword}
+          style={{
+            width: '100%',
+            padding: '14px',
+            background: isLoading || !passwordValidation.isValid || !loginIdValidation || newPassword !== confirmPassword 
+              ? '#ccc' 
+              : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: isLoading || !passwordValidation.isValid || !loginIdValidation || newPassword !== confirmPassword 
+              ? 'not-allowed' 
+              : 'pointer',
+            transition: 'all 0.3s ease'
+          }}
+        >
+          {isLoading ? 'Updating...' : 'Update Credentials'}
+        </button>
+      </form>
+    </div>
+  )
+}
+
 // Matches Section Component
 function MatchesSection({ matches, onRefresh, onChatClick, onViewProfile }: {
   matches: MatchItem[];
@@ -2674,10 +2968,14 @@ function RequestsSection({ incoming, onAccepted, userId, onViewProfile }: {
 // Packs Section Component
 function PacksSection({ userId }: { userId: string }) {
   const [currentPack, setCurrentPack] = useState<any>(null)
-  const [loading, setLoading] = useState(false)
-  const [showQRModal, setShowQRModal] = useState(false)
-  const [qrData, setQrData] = useState<any>(null)
-  const [qrLoading, setQrLoading] = useState(false)
+  const [orderHistory, setOrderHistory] = useState<any[]>([])
+  const [showPackDropdown, setShowPackDropdown] = useState(false)
+  const [showOrderHistory, setShowOrderHistory] = useState(false)
+  // Payment-related state variables commented out - will be integrated later
+  // const [loading, setLoading] = useState(false)
+  // const [showQRModal, setShowQRModal] = useState(false)
+  // const [qrData, setQrData] = useState<any>(null)
+  // const [qrLoading, setQrLoading] = useState(false)
 
   const packs = [
     {
@@ -2714,6 +3012,7 @@ function PacksSection({ userId }: { userId: string }) {
 
   useEffect(() => {
     fetchCurrentPack()
+    fetchOrderHistory()
   }, [userId])
 
   const fetchCurrentPack = async () => {
@@ -2728,6 +3027,20 @@ function PacksSection({ userId }: { userId: string }) {
     }
   }
 
+  const fetchOrderHistory = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/user/orders?userId=${userId}`)
+      if (response.ok) {
+        const data = await response.json()
+        setOrderHistory(data)
+      }
+    } catch (error) {
+      console.error('Error fetching order history:', error)
+    }
+  }
+
+  // Payment function commented out - will be integrated later
+  /*
   const handlePackPurchase = async (pack: any) => {
     setLoading(true)
     try {
@@ -2807,8 +3120,10 @@ function PacksSection({ userId }: { userId: string }) {
       setLoading(false)
     }
   }
+  */
 
-  // Handle QR Code Payment with proper UPI VPA
+  // QR Payment function commented out - will be integrated later
+  /*n
   const handleQRPayment = async (pack: any) => {
     if (!userId) {
       alert('Please login first')
@@ -2853,8 +3168,10 @@ function PacksSection({ userId }: { userId: string }) {
       setQrLoading(false)
     }
   }
+  */
 
-  // Automatic payment verification polling
+  // Payment verification functions commented out - will be integrated later
+  /*
   const startPaymentVerification = (orderId: string, pack: any, amount: number) => {
     console.log('Starting payment verification polling for order:', orderId);
     
@@ -2897,7 +3214,6 @@ function PacksSection({ userId }: { userId: string }) {
     (window as any).qrPollingInterval = pollInterval;
   }
 
-  // Automatic pack activation when payment is detected
   const activatePackAutomatically = async (packId: string, packName: string, transactionId?: string) => {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/payment/activate-pack-manual`, {
@@ -2925,7 +3241,6 @@ function PacksSection({ userId }: { userId: string }) {
     }
   }
 
-  // Manual pack activation for QR payments (backup option)
   const activatePackManually = async (packId: string, packName: string) => {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/payment/activate-pack-manual`, {
@@ -2951,10 +3266,29 @@ function PacksSection({ userId }: { userId: string }) {
       alert('Failed to activate pack. Please try again.')
     }
   }
+  */
 
-  return (
-    <div>
-      {currentPack && (
+  // Helper function to format date
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-IN', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+
+  // Helper function to get pack details by ID
+  const getPackDetails = (packId: string) => {
+    return packs.find(pack => pack.id === packId) || { name: packId, color: '#6c757d' }
+  }
+
+  // If user has a pack, show dropdown interface
+  if (currentPack) {
+    return (
+      <div>
+        {/* Current Pack Status */}
         <div style={{padding: '16px', marginBottom: 16, background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', borderRadius: '8px'}}>
           <h3 style={{margin: '0 0 6px 0', fontSize: 16, fontWeight: 600}}>Current Pack: {currentPack.pack_name}</h3>
           <div style={{display: 'flex', gap: 16, marginTop: 8}}>
@@ -2968,9 +3302,249 @@ function PacksSection({ userId }: { userId: string }) {
                 {currentPack.requests_remaining === -1 ? 'Unlimited' : (currentPack.requests_remaining || 0)}
               </div>
             </div>
+            {currentPack.expires_at && (
+              <div>
+                <div style={{fontSize: 12, opacity: 0.9}}>Expires</div>
+                <div style={{fontSize: 16, fontWeight: 700}}>{formatDate(currentPack.expires_at)}</div>
+              </div>
+            )}
           </div>
         </div>
-      )}
+
+        {/* Pack Management Dropdown */}
+        <div style={{marginBottom: 80}}>
+          {/* First Button and its Dropdown */}
+          <div style={{marginBottom: 12}}>
+            <button
+              onClick={() => {
+                setShowPackDropdown(!showPackDropdown)
+                if (showPackDropdown) setShowOrderHistory(false) // Close other dropdown when opening this one
+              }}
+              style={{
+                background: showPackDropdown ? 'linear-gradient(135deg, #1d4ed8, #1e40af)' : 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                color: 'white',
+                border: 'none',
+                padding: '12px 20px',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <span>📦</span>
+              <span>View All Packs</span>
+              <span style={{transform: showPackDropdown ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s'}}>▼</span>
+            </button>
+
+            {/* Pack Dropdown - Opens right after the button */}
+            {showPackDropdown && (
+              <div style={{
+                marginTop: 8,
+                background: '#ffffff',
+                borderRadius: '12px',
+                border: '1px solid #e9ecef',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                overflow: 'hidden'
+              }}>
+                <div style={{padding: '16px', background: '#f8f9fa', borderBottom: '1px solid #e9ecef'}}>
+                  <h4 style={{margin: 0, fontSize: 16, fontWeight: 600, color: '#212529'}}>Available Packs</h4>
+                  <p style={{margin: '4px 0 0 0', fontSize: 12, color: '#6c757d'}}>Choose a pack to upgrade your experience</p>
+                </div>
+                <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 16, padding: '16px'}}>
+                  {packs.map(pack => (
+                    <div 
+                      key={pack.id}
+                      style={{
+                        padding: '16px',
+                        background: '#ffffff',
+                        borderRadius: '8px',
+                        border: pack.popular ? `2px solid ${pack.color}` : '1px solid #e9ecef',
+                        position: 'relative'
+                      }}
+                    >
+                      {pack.popular && (
+                        <div style={{
+                          position: 'absolute',
+                          top: -8,
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          background: pack.color,
+                          color: 'white',
+                          padding: '2px 12px',
+                          borderRadius: '8px',
+                          fontSize: '10px',
+                          fontWeight: 600
+                        }}>
+                          POPULAR
+                        </div>
+                      )}
+
+                      <div style={{textAlign: 'center', marginBottom: 12}}>
+                        <h4 style={{margin: '0 0 4px 0', fontSize: 16, fontWeight: 700, color: pack.color}}>
+                          {pack.name}
+                        </h4>
+                        <div style={{fontSize: 20, fontWeight: 700, color: '#212529', marginBottom: 4}}>
+                          ₹{pack.price}
+                        </div>
+                        <div style={{color: '#6c757d', fontSize: '10px'}}>one-time payment</div>
+                      </div>
+
+                      <div style={{marginBottom: 12}}>
+                        <div style={{display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4}}>
+                          <span style={{color: pack.color, fontSize: '12px'}}>✓</span>
+                          <span style={{color: '#212529', fontSize: '11px'}}>
+                            <strong>{pack.matches}</strong> matches
+                          </span>
+                        </div>
+                        <div style={{display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4}}>
+                          <span style={{color: pack.color, fontSize: '12px'}}>✓</span>
+                          <span style={{color: '#212529', fontSize: '11px'}}>
+                            <strong>{pack.requests}</strong> requests
+                          </span>
+                        </div>
+                      </div>
+
+                      <div style={{
+                        background: 'linear-gradient(135deg, #25D366, #128C7E)',
+                        color: 'white',
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        textAlign: 'center',
+                        fontSize: '12px',
+                        fontWeight: 600
+                      }}>
+                        📱 Contact WhatsApp to purchase
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Second Button and its Dropdown */}
+          <div>
+            <button
+              onClick={() => {
+                setShowOrderHistory(!showOrderHistory)
+                if (showOrderHistory) setShowPackDropdown(false) // Close other dropdown when opening this one
+              }}
+              style={{
+                background: showOrderHistory ? 'linear-gradient(135deg, #7c3aed, #6d28d9)' : 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+                color: 'white',
+                border: 'none',
+                padding: '12px 20px',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <span>📋</span>
+              <span>Order History</span>
+              <span style={{transform: showOrderHistory ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s'}}>▼</span>
+            </button>
+
+            {/* Order History Dropdown - Opens right after the button */}
+            {showOrderHistory && (
+              <div style={{
+                marginTop: 8,
+                background: '#ffffff',
+                borderRadius: '12px',
+                border: '1px solid #e9ecef',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                overflow: 'hidden'
+              }}>
+                <div style={{padding: '16px', background: '#f8f9fa', borderBottom: '1px solid #e9ecef'}}>
+                  <h4 style={{margin: 0, fontSize: 16, fontWeight: 600, color: '#212529'}}>Order History</h4>
+                  <p style={{margin: '4px 0 0 0', fontSize: 12, color: '#6c757d'}}>Your pack purchase history and details</p>
+                </div>
+                <div style={{padding: '16px'}}>
+                  {orderHistory.length === 0 ? (
+                    <div style={{textAlign: 'center', padding: '20px', color: '#6c757d'}}>
+                      <div style={{fontSize: 24, marginBottom: 8}}>📋</div>
+                      <div>No order history found</div>
+                    </div>
+                  ) : (
+                    <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>
+                      {orderHistory.map((order, index) => {
+                        const packDetails = getPackDetails(order.pack_id)
+                        return (
+                          <div 
+                            key={order.id}
+                            style={{
+                              padding: '16px',
+                              background: '#f8f9fa',
+                              borderRadius: '8px',
+                              border: '1px solid #e9ecef'
+                            }}
+                          >
+                            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8}}>
+                              <div>
+                                <h5 style={{margin: '0 0 4px 0', fontSize: 14, fontWeight: 600, color: packDetails.color}}>
+                                  {packDetails.name} Pack
+                                </h5>
+                                <div style={{fontSize: 12, color: '#6c757d'}}>
+                                  Order ID: {order.id.slice(-8)}
+                                </div>
+                              </div>
+                              <div style={{
+                                padding: '4px 8px',
+                                borderRadius: '4px',
+                                fontSize: '10px',
+                                fontWeight: 600,
+                                background: order.status === 'paid' ? '#d1fae5' : '#fef3c7',
+                                color: order.status === 'paid' ? '#065f46' : '#92400e'
+                              }}>
+                                {order.status.toUpperCase()}
+                              </div>
+                            </div>
+                            
+                            <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 8, fontSize: 12}}>
+                              <div>
+                                <div style={{color: '#6c757d', marginBottom: 2}}>Amount</div>
+                                <div style={{fontWeight: 600, color: '#212529'}}>₹{order.amount / 100}</div>
+                              </div>
+                              <div>
+                                <div style={{color: '#6c757d', marginBottom: 2}}>Purchased</div>
+                                <div style={{fontWeight: 600, color: '#212529'}}>{formatDate(order.created_at)}</div>
+                              </div>
+                              {order.razorpay_payment_id && (
+                                <div>
+                                  <div style={{color: '#6c757d', marginBottom: 2}}>Payment ID</div>
+                                  <div style={{fontWeight: 600, color: '#212529', fontSize: 10}}>{order.razorpay_payment_id.slice(-8)}</div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // If user has no pack, show all packs for purchase
+  return (
+    <div style={{marginBottom: 80}}>
+      <div style={{textAlign: 'center', marginBottom: 24}}>
+        <h3 style={{margin: '0 0 8px 0', fontSize: 20, fontWeight: 600, color: '#212529'}}>Choose Your Pack</h3>
+        <p style={{margin: 0, color: '#6c757d', fontSize: 14}}>Select a pack to start connecting with amazing people</p>
+      </div>
 
       <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 16}}>
         {packs.map(pack => (
@@ -2983,7 +3557,8 @@ function PacksSection({ userId }: { userId: string }) {
               border: pack.popular ? `2px solid ${pack.color}` : '1px solid #e9ecef',
               transform: pack.popular ? 'scale(1.02)' : 'scale(1)',
               transition: 'all 0.3s ease',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+              position: 'relative'
             }}
           >
             {pack.popular && (
@@ -3040,47 +3615,42 @@ function PacksSection({ userId }: { userId: string }) {
             </div>
 
             <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
-              <button
-                style={{
-                  ...btnPrimary,
-                  width: '100%',
-                  background: `linear-gradient(135deg, ${pack.color}, ${pack.color}dd)`,
-                  opacity: loading ? 0.7 : 1,
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  padding: '10px 16px'
-                }}
-                onClick={() => handlePackPurchase(pack)}
-                disabled={loading}
-              >
-                {loading ? 'Processing...' : `💳 Pay ₹${pack.price}`}
-              </button>
+              {/* WhatsApp contact for pack purchase */}
+              <div style={{
+                background: 'linear-gradient(135deg, #25D366, #128C7E)',
+                color: 'white',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                textAlign: 'center',
+                fontSize: '14px',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8
+              }}>
+                <span>📱</span>
+                <span>Contact us on WhatsApp to purchase this pack</span>
+              </div>
               
-              <button
-                style={{
-                  ...btnPrimary,
-                  width: '100%',
-                  background: 'linear-gradient(135deg, #00C853, #00A843)',
-                  opacity: qrLoading ? 0.7 : 1,
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  padding: '10px 16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6
-                }}
-                onClick={() => handleQRPayment(pack)}
-                disabled={qrLoading}
-              >
-                {qrLoading ? '⏳ Creating QR...' : '📱 Pay ₹1 (Test QR)'}
-              </button>
+              <div style={{
+                background: '#f8f9fa',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                color: '#6c757d',
+                textAlign: 'center',
+                lineHeight: '1.4'
+              }}>
+                Payment integration coming soon! For now, reach out to us on WhatsApp for pack purchases.
+              </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* QR Payment Modal */}
+      {/* QR Payment Modal commented out - will be integrated later */}
+      {/*
       {showQRModal && qrData && (
         <div style={{
           position: 'fixed',
@@ -3255,6 +3825,7 @@ function PacksSection({ userId }: { userId: string }) {
           </div>
         </div>
       )}
+      */}
     </div>
   )
 }

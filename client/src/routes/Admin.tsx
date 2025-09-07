@@ -135,13 +135,16 @@ type UserProfile = {
 
 export function Admin(){
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState<'pending' | 'users' | 'packs'>('pending')
+  const [activeTab, setActiveTab] = useState<'pending' | 'users' | 'packs' | 'subscriptions'>('pending')
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([])
   const [allUsers, setAllUsers] = useState<User[]>([])
   const [packData, setPackData] = useState<PackData | null>(null)
   const [credentials, setCredentials] = useState<{loginId: string; password: string} | undefined>()
   const [selectedProfile, setSelectedProfile] = useState<UserProfile | null>(null)
+  const [selectedUserForPack, setSelectedUserForPack] = useState<User | null>(null)
+  const [userPackDetails, setUserPackDetails] = useState<any>(null)
   const [loading, setLoading] = useState(false)
+  const [packActionLoading, setPackActionLoading] = useState(false)
   const token = localStorage.getItem('authToken') || ''
 
   // Admin logout function with extra security
@@ -201,6 +204,19 @@ export function Admin(){
         }
         const data = await r.json()
         setPackData(data)
+      } else if (activeTab === 'subscriptions') {
+        // Load users for subscription management
+        const r = await fetch(import.meta.env.VITE_API_URL + '/api/admin/users', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        })
+        if (!r.ok) {
+          throw new Error(`HTTP error! status: ${r.status}`)
+        }
+        const data = await r.json()
+        setAllUsers(Array.isArray(data) ? data : [])
       }
     } catch (error) {
       console.error('Error loading data:', error)
@@ -208,7 +224,7 @@ export function Admin(){
       // Set empty arrays on error to prevent map errors
       if (activeTab === 'pending') {
         setPendingUsers([])
-      } else if (activeTab === 'users') {
+      } else if (activeTab === 'users' || activeTab === 'subscriptions') {
         setAllUsers([])
       } else if (activeTab === 'packs') {
         setPackData(null)
@@ -283,6 +299,93 @@ export function Admin(){
     })
   }
 
+  // Subscription management functions
+  async function loadUserPackDetails(userId: string) {
+    try {
+      const r = await fetch(import.meta.env.VITE_API_URL + `/api/admin/user-pack/${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      if (!r.ok) {
+        throw new Error(`HTTP error! status: ${r.status}`)
+      }
+      const data = await r.json()
+      setUserPackDetails(data.pack)
+    } catch (error) {
+      console.error('Error loading user pack details:', error)
+      setUserPackDetails(null)
+    }
+  }
+
+  async function assignPack(userId: string, packId: string, amount: number) {
+    setPackActionLoading(true)
+    try {
+      const r = await fetch(import.meta.env.VITE_API_URL + '/api/admin/assign-pack', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ userId, packId, amount })
+      })
+      const data = await r.json()
+      if (r.ok) {
+        alert(data.message)
+        // Reload pack details
+        await loadUserPackDetails(userId)
+        // Reload packs data
+        if (activeTab === 'packs') {
+          loadData()
+        }
+      } else {
+        alert(data?.error || 'Failed to assign pack')
+      }
+    } catch (error) {
+      console.error('Error assigning pack:', error)
+      alert('Failed to assign pack')
+    } finally {
+      setPackActionLoading(false)
+    }
+  }
+
+  async function updatePack(userId: string, action: string, value: number) {
+    setPackActionLoading(true)
+    try {
+      const r = await fetch(import.meta.env.VITE_API_URL + '/api/admin/update-pack', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ userId, action, value })
+      })
+      const data = await r.json()
+      if (r.ok) {
+        alert(data.message)
+        // Reload pack details
+        await loadUserPackDetails(userId)
+        // Reload packs data
+        if (activeTab === 'packs') {
+          loadData()
+        }
+      } else {
+        alert(data?.error || 'Failed to update pack')
+      }
+    } catch (error) {
+      console.error('Error updating pack:', error)
+      alert('Failed to update pack')
+    } finally {
+      setPackActionLoading(false)
+    }
+  }
+
+  function openPackManagement(user: User) {
+    setSelectedUserForPack(user)
+    loadUserPackDetails(user.id)
+  }
+
   return (
     <div className="container">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
@@ -306,6 +409,12 @@ export function Admin(){
               onClick={() => setActiveTab('packs')}
             >
               Packs & Purchases
+            </button>
+            <button 
+              style={{...tabButton, ...(activeTab === 'subscriptions' ? activeTabButton : {})}}
+              onClick={() => setActiveTab('subscriptions')}
+            >
+              Manage Subscriptions
             </button>
           </div>
           <button 
@@ -624,6 +733,79 @@ export function Admin(){
         </div>
       )}
 
+      {/* Subscription Management Section */}
+      {activeTab === 'subscriptions' && !loading && (
+        <div>
+          <h3 style={{ marginBottom: '16px', color: 'var(--accent)' }}>Subscription Management</h3>
+          <p style={{ marginBottom: '24px', color: 'var(--muted)', fontSize: '14px' }}>
+            Manage user subscription packs manually. Assign new packs or modify existing ones.
+          </p>
+          
+          <div style={tableContainer}>
+            <table style={table}>
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Login ID</th>
+                  <th>WhatsApp</th>
+                  <th>Instagram</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Array.isArray(allUsers) && allUsers.map(user => (
+                  <tr key={user.id}>
+                    <td>
+                      <div>
+                        <div style={{ fontWeight: '600' }}>{user.name}</div>
+                        <div style={{ fontSize: '12px', color: 'var(--text)', opacity: 0.8 }}>
+                          {user.gender} • {calculateAge(user.date_of_birth)} years
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div style={{ fontFamily: 'monospace', fontSize: '12px' }}>
+                        {user.login_id || 'Not generated'}
+                      </div>
+                    </td>
+                    <td>{user.whatsapp_number}</td>
+                    <td>@{user.instagram_handle}</td>
+                    <td>
+                      <span style={{
+                        ...statusBadge,
+                        backgroundColor: user.status === 'approved' ? '#10b981' : 
+                                        user.status === 'pending' ? '#f59e0b' : '#ef4444'
+                      }}>
+                        {user.status}
+                      </span>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button 
+                          style={btnSmall} 
+                          onClick={() => viewProfile(user.id)}
+                        >
+                          View Profile
+                        </button>
+                        {user.status === 'approved' && (
+                          <button 
+                            style={{...btnSmall, background: 'var(--accent2)'}} 
+                            onClick={() => openPackManagement(user)}
+                          >
+                            Manage Pack
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* Credentials Modal */}
       {credentials && (
         <div style={modalOverlay}>
@@ -708,6 +890,133 @@ export function Admin(){
                   <div><strong>Created:</strong> {formatDate(selectedProfile.created_at)}</div>
                   <div><strong>Last Updated:</strong> {formatDate(selectedProfile.updated_at)}</div>
                   <div><strong>Profile Created:</strong> {formatDate(selectedProfile.profile_created_at)}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pack Management Modal */}
+      {selectedUserForPack && (
+        <div style={modalOverlay}>
+          <div style={{...modal, maxWidth: '800px'}}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ color: 'var(--accent)' }}>Manage Pack - {selectedUserForPack.name}</h3>
+              <button style={closeButton} onClick={() => {
+                setSelectedUserForPack(null)
+                setUserPackDetails(null)
+              }}>×</button>
+            </div>
+            
+            <div style={profileContent}>
+              {/* Current Pack Status */}
+              <div style={profileSection}>
+                <h4>Current Pack Status</h4>
+                {userPackDetails ? (
+                  <div style={profileGrid}>
+                    <div><strong>Pack:</strong> {userPackDetails.pack_name}</div>
+                    <div><strong>Matches:</strong> {userPackDetails.matches_remaining}/{userPackDetails.matches_total}</div>
+                    <div><strong>Requests:</strong> {userPackDetails.requests_remaining === -1 ? '∞' : userPackDetails.requests_remaining}/{userPackDetails.requests_total === -1 ? '∞' : userPackDetails.requests_total}</div>
+                    <div><strong>Amount Paid:</strong> ₹{userPackDetails.amount_paid}</div>
+                    <div><strong>Purchased:</strong> {formatDate(userPackDetails.purchased_at)}</div>
+                    <div><strong>Expires:</strong> {userPackDetails.expires_at ? formatDate(userPackDetails.expires_at) : 'Lifetime'}</div>
+                  </div>
+                ) : (
+                  <div style={{ color: 'var(--muted)', fontStyle: 'italic' }}>
+                    No active pack found for this user.
+                  </div>
+                )}
+              </div>
+
+              {/* Assign New Pack */}
+              <div style={profileSection}>
+                <h4>Assign New Pack</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '16px' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Pack Type</label>
+                    <select id="packSelect" style={{...inputStyle, width: '100%'}}>
+                      <option value="starter">Starter (5 matches, 50 requests) - ₹99</option>
+                      <option value="intermediate">Intermediate (8 matches, 100 requests) - ₹199</option>
+                      <option value="pro">Pro (15 matches, unlimited requests) - ₹399</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Amount Paid (₹)</label>
+                    <input 
+                      type="number" 
+                      id="amountInput" 
+                      placeholder="0" 
+                      style={{...inputStyle, width: '100%'}}
+                    />
+                  </div>
+                </div>
+                <button 
+                  style={{...btnPrimary, marginBottom: '16px'}}
+                  onClick={() => {
+                    const packSelect = document.getElementById('packSelect') as HTMLSelectElement
+                    const amountInput = document.getElementById('amountInput') as HTMLInputElement
+                    const packId = packSelect.value
+                    const amount = parseInt(amountInput.value) || 0
+                    assignPack(selectedUserForPack.id, packId, amount)
+                  }}
+                  disabled={packActionLoading}
+                >
+                  {packActionLoading ? 'Assigning...' : 'Assign Pack'}
+                </button>
+              </div>
+
+              {/* Update Existing Pack */}
+              {userPackDetails && (
+                <div style={profileSection}>
+                  <h4>Update Current Pack</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '16px' }}>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Action</label>
+                      <select id="updateAction" style={{...inputStyle, width: '100%'}}>
+                        <option value="extend_matches">Extend Matches</option>
+                        <option value="extend_requests">Extend Requests</option>
+                        <option value="reset_matches">Reset Matches</option>
+                        <option value="reset_requests">Reset Requests</option>
+                        <option value="extend_expiry">Extend Expiry</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Value</label>
+                      <input 
+                        type="number" 
+                        id="updateValue" 
+                        placeholder="Enter value" 
+                        style={{...inputStyle, width: '100%'}}
+                      />
+                    </div>
+                  </div>
+                  <button 
+                    style={{...btnSecondary, marginBottom: '16px'}}
+                    onClick={() => {
+                      const actionSelect = document.getElementById('updateAction') as HTMLSelectElement
+                      const valueInput = document.getElementById('updateValue') as HTMLInputElement
+                      const action = actionSelect.value
+                      const value = parseInt(valueInput.value) || 0
+                      updatePack(selectedUserForPack.id, action, value)
+                    }}
+                    disabled={packActionLoading}
+                  >
+                    {packActionLoading ? 'Updating...' : 'Update Pack'}
+                  </button>
+                </div>
+              )}
+
+              {/* User Info */}
+              <div style={profileSection}>
+                <h4>User Information</h4>
+                <div style={profileGrid}>
+                  <div><strong>Name:</strong> {selectedUserForPack.name}</div>
+                  <div><strong>WhatsApp:</strong> {selectedUserForPack.whatsapp_number}</div>
+                  <div><strong>Instagram:</strong> @{selectedUserForPack.instagram_handle}</div>
+                  <div><strong>Login ID:</strong> {selectedUserForPack.login_id || 'Not generated'}</div>
+                  <div><strong>Status:</strong> {selectedUserForPack.status}</div>
+                  <div><strong>Created:</strong> {formatDate(selectedUserForPack.created_at)}</div>
                 </div>
               </div>
             </div>
@@ -866,4 +1175,14 @@ const profileGrid: React.CSSProperties = {
   gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
   gap: '12px',
   marginTop: '8px'
+}
+
+const inputStyle: React.CSSProperties = {
+  background: 'var(--card)',
+  border: '1px solid #26263a',
+  borderRadius: '8px',
+  padding: '8px 12px',
+  color: 'var(--text)',
+  fontSize: '14px',
+  width: '100%'
 }

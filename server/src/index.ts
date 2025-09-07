@@ -500,6 +500,98 @@ app.put("/api/me", async (req, res) => {
   }
 });
 
+// Privacy: Change password and login ID
+app.put("/api/privacy/change-credentials", async (req, res) => {
+  const { userId, currentPassword, newLoginId, newPassword, confirmPassword } = req.body || {};
+  
+  if (!userId || !currentPassword || !newLoginId || !newPassword || !confirmPassword) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  // Validate new password confirmation
+  if (newPassword !== confirmPassword) {
+    return res.status(400).json({ error: "New password and confirmation do not match" });
+  }
+
+  // Validate new login ID (minimum 6 characters)
+  if (newLoginId.length < 6) {
+    return res.status(400).json({ error: "Login ID must be at least 6 characters long" });
+  }
+
+  // Validate new password (8+ chars, lowercase, uppercase, symbol)
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
+  if (!passwordRegex.test(newPassword)) {
+    return res.status(400).json({ 
+      error: "Password must be at least 8 characters long and contain at least one lowercase letter, one uppercase letter, and one special character" 
+    });
+  }
+
+  try {
+    // Get current user data
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('id, password_hash, login_id, status')
+      .eq('id', userId)
+      .single();
+
+    if (userError || !userData) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    if (userData.status !== 'approved') {
+      return res.status(403).json({ error: "User not approved" });
+    }
+
+    // Verify current password
+    const bcrypt = await import('bcrypt');
+    const isValidPassword = await bcrypt.compare(currentPassword, userData.password_hash);
+    
+    if (!isValidPassword) {
+      return res.status(401).json({ error: "Current password is incorrect" });
+    }
+
+    // Check if new login ID is already taken by another user
+    if (newLoginId !== userData.login_id) {
+      const { data: existingUser, error: checkError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('login_id', newLoginId)
+        .neq('id', userId)
+        .single();
+
+      if (existingUser) {
+        return res.status(400).json({ error: "Login ID is already taken" });
+      }
+    }
+
+    // Hash new password
+    const saltRounds = 10;
+    const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
+
+    // Update user credentials
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({
+        login_id: newLoginId,
+        password_hash: newPasswordHash,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', userId);
+
+    if (updateError) {
+      throw updateError;
+    }
+
+    res.json({ 
+      ok: true, 
+      message: "Credentials updated successfully" 
+    });
+  } catch (err) {
+    console.error('Error updating credentials:', err);
+    res.status(500).json({ error: "Failed to update credentials" });
+  }
+});
+
 // Feed: list others' profiles (no photos)
 app.get("/api/feed", async (req, res) => {
   const userId = String(req.query.userId || "");
@@ -1066,6 +1158,29 @@ app.get("/api/user/pack", async (req, res) => {
   } catch (err) {
     console.error('Failed to fetch user pack:', err);
     res.status(500).json({ error: "Failed to fetch pack information" });
+  }
+});
+
+// Get user order history
+app.get("/api/user/orders", async (req, res) => {
+  const userId = String(req.query.userId || "");
+  if (!userId) return res.status(400).json({ error: "Missing userId" });
+  
+  try {
+    const { data, error } = await supabase
+      .from('payment_orders')
+      .select('id, pack_id, amount, currency, status, razorpay_payment_id, created_at, updated_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+    
+    res.json(data || []);
+  } catch (err) {
+    console.error('Failed to fetch user orders:', err);
+    res.status(500).json({ error: "Failed to fetch order history" });
   }
 });
 
@@ -1804,6 +1919,229 @@ app.get("/api/admin/profile/:userId", async (req, res) => {
   } catch (err) {
     console.error('Failed to fetch user profile:', err);
     res.status(500).json({ error: "Failed to fetch user profile" });
+  }
+});
+
+// Admin: Manually assign/update subscription pack for a user
+app.post("/api/admin/assign-pack", authenticateToken, async (req, res) => {
+  const { userId, packId, amount, notes } = req.body || {};
+  
+  if (!userId || !packId) {
+    return res.status(400).json({ error: "Missing userId or packId" });
+  }
+
+  try {
+    // Verify user exists and is approved
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('id, name, status')
+      .eq('id', userId)
+      .eq('status', 'approved')
+      .single();
+    
+    if (userError || !userData) {
+      return res.status(404).json({ error: "User not found or not approved" });
+    }
+
+    // Get pack details
+    const packDetailsMap: any = {
+      starter: { name: 'Starter', matches: 5, requests: 50 },
+      intermediate: { name: 'Intermediate', matches: 8, requests: 100 },
+      pro: { name: 'Pro', matches: 15, requests: -1 } // -1 for unlimited
+    };
+    const packDetails = packDetailsMap[packId as keyof typeof packDetailsMap];
+    
+    if (!packDetails) {
+      return res.status(400).json({ error: 'Invalid pack ID' });
+    }
+
+    // Create a manual payment order record for tracking
+    const manualOrderId = `admin_manual_${Date.now()}_${userId.slice(-8)}`;
+    const { error: orderError } = await supabase
+      .from('payment_orders')
+      .insert({
+        user_id: userId,
+        razorpay_order_id: manualOrderId,
+        pack_id: packId,
+        amount: (amount || 0) * 100, // Convert to paisa
+        currency: 'INR',
+        status: 'paid',
+        razorpay_payment_id: 'admin_manual_assignment'
+      });
+
+    if (orderError) {
+      throw orderError;
+    }
+
+    // Assign/update user pack
+    const { error: packError } = await supabase
+      .from('user_packs')
+      .upsert({
+        user_id: userId,
+        pack_id: packId,
+        pack_name: packDetails.name,
+        matches_total: packDetails.matches,
+        matches_remaining: packDetails.matches,
+        requests_total: packDetails.requests,
+        requests_remaining: packDetails.requests,
+        amount_paid: amount || 0,
+        purchased_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days
+      });
+
+    if (packError) {
+      throw packError;
+    }
+
+    console.log(`Admin manually assigned pack ${packId} to user ${userId} (${userData.name})`);
+    
+    res.json({ 
+      success: true, 
+      message: `${packDetails.name} pack assigned successfully to ${userData.name}`,
+      pack: {
+        id: packId,
+        name: packDetails.name,
+        matches: packDetails.matches,
+        requests: packDetails.requests,
+        amount: amount || 0
+      }
+    });
+    
+  } catch (err) {
+    console.error("Failed to assign pack:", err);
+    res.status(500).json({ error: "Failed to assign pack", details: err instanceof Error ? err.message : 'Unknown error' });
+  }
+});
+
+// Admin: Update user pack (extend, modify, or reset)
+app.put("/api/admin/update-pack", authenticateToken, async (req, res) => {
+  const { userId, action, value, notes } = req.body || {};
+  
+  if (!userId || !action) {
+    return res.status(400).json({ error: "Missing userId or action" });
+  }
+
+  try {
+    // Get current pack
+    const { data: currentPack, error: packError } = await supabase
+      .from('user_packs')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (packError && packError.code !== 'PGRST116') {
+      throw packError;
+    }
+
+    if (!currentPack) {
+      return res.status(404).json({ error: "No active pack found for this user" });
+    }
+
+    let updateData: any = {};
+
+    switch (action) {
+      case 'extend_matches':
+        updateData.matches_remaining = Math.max(0, currentPack.matches_remaining + (value || 0));
+        break;
+      case 'extend_requests':
+        if (currentPack.requests_remaining === -1) {
+          return res.status(400).json({ error: "Cannot extend unlimited requests" });
+        }
+        updateData.requests_remaining = Math.max(0, currentPack.requests_remaining + (value || 0));
+        break;
+      case 'reset_matches':
+        updateData.matches_remaining = currentPack.matches_total;
+        break;
+      case 'reset_requests':
+        updateData.requests_remaining = currentPack.requests_total;
+        break;
+      case 'extend_expiry':
+        const currentExpiry = new Date(currentPack.expires_at);
+        const newExpiry = new Date(currentExpiry.getTime() + (value || 30) * 24 * 60 * 60 * 1000);
+        updateData.expires_at = newExpiry.toISOString();
+        break;
+      default:
+        return res.status(400).json({ error: "Invalid action" });
+    }
+
+    // Update the pack
+    const { error: updateError } = await supabase
+      .from('user_packs')
+      .update(updateData)
+      .eq('user_id', userId);
+
+    if (updateError) {
+      throw updateError;
+    }
+
+    console.log(`Admin updated pack for user ${userId}: ${action} with value ${value}`);
+    
+    res.json({ 
+      success: true, 
+      message: `Pack updated successfully: ${action}`,
+      updatedData: updateData
+    });
+    
+  } catch (err) {
+    console.error("Failed to update pack:", err);
+    res.status(500).json({ error: "Failed to update pack", details: err instanceof Error ? err.message : 'Unknown error' });
+  }
+});
+
+// Admin: Get user's current pack details
+app.get("/api/admin/user-pack/:userId", authenticateToken, async (req, res) => {
+  const { userId } = req.params;
+  
+  if (!userId) {
+    return res.status(400).json({ error: "Missing userId" });
+  }
+
+  try {
+    const { data: packData, error: packError } = await supabase
+      .from('user_packs')
+      .select(`
+        *,
+        users!inner (
+          id, name, whatsapp_number, instagram_handle, login_id
+        )
+      `)
+      .eq('user_id', userId)
+      .single();
+
+    if (packError && packError.code !== 'PGRST116') {
+      throw packError;
+    }
+
+    if (!packData) {
+      return res.json({ pack: null, message: "No active pack found" });
+    }
+
+    // Flatten the data
+    const flattenedData = {
+      id: packData.id,
+      user_id: packData.user_id,
+      user_name: packData.users.name,
+      user_whatsapp: packData.users.whatsapp_number,
+      user_instagram: packData.users.instagram_handle,
+      user_login_id: packData.users.login_id,
+      pack_id: packData.pack_id,
+      pack_name: packData.pack_name,
+      matches_total: packData.matches_total,
+      matches_remaining: packData.matches_remaining,
+      requests_total: packData.requests_total,
+      requests_remaining: packData.requests_remaining,
+      amount_paid: packData.amount_paid,
+      purchased_at: packData.purchased_at,
+      expires_at: packData.expires_at,
+      created_at: packData.created_at,
+      updated_at: packData.updated_at
+    };
+
+    res.json({ pack: flattenedData });
+    
+  } catch (err) {
+    console.error("Failed to fetch user pack:", err);
+    res.status(500).json({ error: "Failed to fetch user pack", details: err instanceof Error ? err.message : 'Unknown error' });
   }
 });
 
