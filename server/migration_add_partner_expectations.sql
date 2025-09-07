@@ -32,3 +32,4 @@ ALTER TABLE profiles ALTER COLUMN interest_5_desc SET NOT NULL;
 ALTER TABLE profiles ALTER COLUMN interest_6 SET NOT NULL;
 ALTER TABLE profiles ALTER COLUMN interest_6_desc SET NOT NULL;
 
+

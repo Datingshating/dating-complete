@@ -1,5 +1,6 @@
 import { ReactNode, useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
+import { LoadingSpinner } from './LoadingSpinner'
 
 interface ProtectedRouteProps {
   children: ReactNode
@@ -37,6 +38,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
           localStorage.removeItem('authToken')
           localStorage.removeItem('userId')
           localStorage.removeItem('userName')
+          localStorage.removeItem('isAdmin')
           sessionStorage.removeItem('userId')
           setIsAuthenticated(false)
         }
@@ -46,6 +48,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
         localStorage.removeItem('authToken')
         localStorage.removeItem('userId')
         localStorage.removeItem('userName')
+        localStorage.removeItem('isAdmin')
         sessionStorage.removeItem('userId')
         setIsAuthenticated(false)
       }
@@ -57,19 +60,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   }, [])
 
   if (isLoading) {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: 'white',
-        fontSize: '18px'
-      }}>
-        Loading...
-      </div>
-    )
+    return <LoadingSpinner overlay={true} message="Verifying your access..." />
   }
 
   if (!isAuthenticated) {

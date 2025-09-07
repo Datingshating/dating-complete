@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useLayoutEffect  } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { io, Socket } from 'socket.io-client'
+import { LoadingSpinner } from '../components/LoadingSpinner'
 
 type Profile = { 
   id:string; 
@@ -57,13 +58,23 @@ export function Dashboard(){
   const [showProfileDropdown, setShowProfileDropdown] = useState(false)
   const [showSuccessAnimation, setShowSuccessAnimation] = useState(false)
   const [upgradeModal, setUpgradeModal] = useState<{visible:boolean; title:string; subtitle:string; cta:string; reason:'no-pack'|'requests-limit'|'matches-limit'|null}>({visible:false, title:'', subtitle:'', cta:'', reason:null})
+  const [isInitialLoading, setIsInitialLoading] = useState(true)
+  const [isFeedLoading, setIsFeedLoading] = useState(false)
+  const [isMatchesLoading, setIsMatchesLoading] = useState(false)
+  const [isRequestsLoading, setIsRequestsLoading] = useState(false)
   const userId = localStorage.getItem('userId') || ''
   const token = localStorage.getItem('authToken') || ''
   const socketRef = useRef<Socket | null>(null)
 
   // Function to fetch all data
-  const fetchData = async () => {
+  const fetchData = async (showLoading = false) => {
     if (!userId || !token) return
+    
+    if (showLoading) {
+      setIsFeedLoading(true)
+      setIsMatchesLoading(true)
+      setIsRequestsLoading(true)
+    }
     
     try {
       const base = import.meta.env.VITE_API_URL
@@ -100,8 +111,6 @@ export function Dashboard(){
       const incomingData = await incomingRes.json()
       const meData = await meRes.json()
 
-
-
       setFeed(Array.isArray(feedData) ? feedData : [])
       setMatches(Array.isArray(matchesData) ? matchesData : [])
       setIncoming(Array.isArray(incomingData) ? incomingData : [])
@@ -111,6 +120,13 @@ export function Dashboard(){
       setFeed([])
       setMatches([])
       setIncoming([])
+    } finally {
+      if (showLoading) {
+        setIsFeedLoading(false)
+        setIsMatchesLoading(false)
+        setIsRequestsLoading(false)
+      }
+      setIsInitialLoading(false)
     }
   }
 
@@ -156,10 +172,10 @@ export function Dashboard(){
 
   // Real-time updates for incoming requests
   useEffect(() => {
-    fetchData()
+    fetchData(true) // Show loading on initial fetch
     
     // Set up polling for real-time updates every 1 second for faster response
-    const interval = setInterval(fetchData, 1000)
+    const interval = setInterval(() => fetchData(false), 1000)
     return () => clearInterval(interval)
   }, [userId])
 
@@ -272,6 +288,11 @@ export function Dashboard(){
     navigate('/login')
   }
 
+  // Show initial loading overlay
+  if (isInitialLoading) {
+    return <LoadingSpinner overlay={true} message="Loading your dashboard..." />
+  }
+
   return (
     <div className="responsive-main" style={{
       display: 'flex', 
@@ -343,25 +364,29 @@ export function Dashboard(){
         <div style={{padding: '16px'}}>
           {activeTab === 'dating' && (
             <div className="fade-in">
-              <DatingZone 
-                feed={feed} 
-                filters={filters} 
-                setFilters={setFilters}
-                filtersVisible={filtersVisible}
-                setFiltersVisible={setFiltersVisible}
-                onSendRequest={sendRequest}
-                onViewProfile={setSelected}
-                onRequireUpgrade={(info)=>{
-                  setUpgradeModal({
-                    visible: true,
-                    title: info.title,
-                    subtitle: info.subtitle,
-                    cta: info.cta,
-                    reason: info.reason
-                  })
-                  setActiveTab('packs')
-                }}
-              />
+              {isFeedLoading ? (
+                <LoadingSpinner message="Finding profiles for you..." />
+              ) : (
+                <DatingZone 
+                  feed={feed} 
+                  filters={filters} 
+                  setFilters={setFilters}
+                  filtersVisible={filtersVisible}
+                  setFiltersVisible={setFiltersVisible}
+                  onSendRequest={sendRequest}
+                  onViewProfile={setSelected}
+                  onRequireUpgrade={(info)=>{
+                    setUpgradeModal({
+                      visible: true,
+                      title: info.title,
+                      subtitle: info.subtitle,
+                      cta: info.cta,
+                      reason: info.reason
+                    })
+                    setActiveTab('packs')
+                  }}
+                />
+              )}
             </div>
           )}
 
@@ -376,106 +401,114 @@ export function Dashboard(){
 
           {activeTab === 'matches' && (
             <div className="fade-in">
-              <MatchesSection 
-                matches={matches}
-                onRefresh={fetchData}
-                onChatClick={(userId) => {
-                  setSelectedChatUser(userId)
-                  setActiveTab('chat')
-                }}
-                onViewProfile={async (matchItem) => {
-                  try {
-                    const base = import.meta.env.VITE_API_URL
-                    const response = await fetch(`${base}/api/profile/${matchItem.other_user_id}`, {
-                      headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
+              {isMatchesLoading ? (
+                <LoadingSpinner message="Loading your matches..." />
+              ) : (
+                <MatchesSection 
+                  matches={matches}
+                  onRefresh={fetchData}
+                  onChatClick={(userId) => {
+                    setSelectedChatUser(userId)
+                    setActiveTab('chat')
+                  }}
+                  onViewProfile={async (matchItem) => {
+                    try {
+                      const base = import.meta.env.VITE_API_URL
+                      const response = await fetch(`${base}/api/profile/${matchItem.other_user_id}`, {
+                        headers: {
+                          'Authorization': `Bearer ${token}`,
+                          'Content-Type': 'application/json'
+                        }
+                      })
+                      
+                      if (!response.ok) {
+                        throw new Error('Failed to fetch profile')
                       }
-                    })
-                    
-                    if (!response.ok) {
-                      throw new Error('Failed to fetch profile')
+                      
+                      const profileData = await response.json()
+                      setSelectedMatchProfile(profileData)
+                    } catch (error) {
+                      console.error('Error fetching profile:', error)
+                      // Fallback to basic data if API fails
+                      const fallbackProfile: Profile = {
+                        id: matchItem.other_user_id,
+                        name: matchItem.bio.split(' ')[0] || 'Match',
+                        gender: 'Not specified',
+                        location: matchItem.location,
+                        custom_location: matchItem.custom_location,
+                        bio: matchItem.bio,
+                        relationship_status: matchItem.relationship_status,
+                        interest_1: matchItem.interest_1,
+                        interest_2: matchItem.interest_2,
+                        interest_3: matchItem.interest_3,
+                        interest_4: matchItem.interest_4,
+                        interest_5: matchItem.interest_5,
+                        interest_6: matchItem.interest_6
+                      }
+                      setSelectedMatchProfile(fallbackProfile)
                     }
-                    
-                    const profileData = await response.json()
-                    setSelectedMatchProfile(profileData)
-                  } catch (error) {
-                    console.error('Error fetching profile:', error)
-                    // Fallback to basic data if API fails
-                    const fallbackProfile: Profile = {
-                      id: matchItem.other_user_id,
-                      name: matchItem.bio.split(' ')[0] || 'Match',
-                      gender: 'Not specified',
-                      location: matchItem.location,
-                      custom_location: matchItem.custom_location,
-                      bio: matchItem.bio,
-                      relationship_status: matchItem.relationship_status,
-                      interest_1: matchItem.interest_1,
-                      interest_2: matchItem.interest_2,
-                      interest_3: matchItem.interest_3,
-                      interest_4: matchItem.interest_4,
-                      interest_5: matchItem.interest_5,
-                      interest_6: matchItem.interest_6
-                    }
-                    setSelectedMatchProfile(fallbackProfile)
-                  }
-                }}
-              />
+                  }}
+                />
+              )}
             </div>
           )}
 
           {activeTab === 'requests' && (
             <div className="fade-in">
-              <RequestsSection 
-                incoming={incoming}
-                onAccepted={async (id) => {
-                  // Remove from incoming requests
-                  setIncoming(incoming.filter(i => i.id !== id))
-                  // Refresh data to update matches
-                  await fetchData()
-                }}
-                userId={userId}
-                onViewProfile={async (requestItem) => {
-                  try {
-                    const base = import.meta.env.VITE_API_URL
-                    const response = await fetch(`${base}/api/profile/${requestItem.from_user_id}`, {
-                      headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
+              {isRequestsLoading ? (
+                <LoadingSpinner message="Loading connection requests..." />
+              ) : (
+                <RequestsSection 
+                  incoming={incoming}
+                  onAccepted={async (id) => {
+                    // Remove from incoming requests
+                    setIncoming(incoming.filter(i => i.id !== id))
+                    // Refresh data to update matches
+                    await fetchData()
+                  }}
+                  userId={userId}
+                  onViewProfile={async (requestItem) => {
+                    try {
+                      const base = import.meta.env.VITE_API_URL
+                      const response = await fetch(`${base}/api/profile/${requestItem.from_user_id}`, {
+                        headers: {
+                          'Authorization': `Bearer ${token}`,
+                          'Content-Type': 'application/json'
+                        }
+                      })
+                      
+                      if (!response.ok) {
+                        throw new Error('Failed to fetch profile')
                       }
-                    })
-                    
-                    if (!response.ok) {
-                      throw new Error('Failed to fetch profile')
+                      
+                      const profileData = await response.json()
+                      setSelectedMatchProfile(profileData)
+                    } catch (error) {
+                      console.error('Error fetching profile:', error)
+                      // Fallback to basic data if API fails
+                      const fallbackProfile: Profile = {
+                        id: requestItem.from_user_id,
+                        name: requestItem.name || `User ${requestItem.from_user_id.slice(0,8)}…`,
+                        bio: requestItem.bio || 'No bio available',
+                        gender: 'Not specified',
+                        relationship_status: 'Not specified',
+                        location: requestItem.location || 'Not specified',
+                        custom_location: requestItem.custom_location,
+                        interest_1: 'Not specified',
+                        interest_2: 'Not specified',
+                        interest_3: 'Not specified',
+                        interest_4: 'Not specified',
+                        interest_5: 'Not specified',
+                        interest_6: 'Not specified',
+                        partner_expectations: 'Not specified',
+                        instagram_handle: undefined,
+                        age: undefined
+                      }
+                      setSelectedMatchProfile(fallbackProfile)
                     }
-                    
-                    const profileData = await response.json()
-                    setSelectedMatchProfile(profileData)
-                  } catch (error) {
-                    console.error('Error fetching profile:', error)
-                    // Fallback to basic data if API fails
-                    const fallbackProfile: Profile = {
-                      id: requestItem.from_user_id,
-                      name: requestItem.name || `User ${requestItem.from_user_id.slice(0,8)}…`,
-                      bio: requestItem.bio || 'No bio available',
-                      gender: 'Not specified',
-                      relationship_status: 'Not specified',
-                      location: requestItem.location || 'Not specified',
-                      custom_location: requestItem.custom_location,
-                      interest_1: 'Not specified',
-                      interest_2: 'Not specified',
-                      interest_3: 'Not specified',
-                      interest_4: 'Not specified',
-                      interest_5: 'Not specified',
-                      interest_6: 'Not specified',
-                      partner_expectations: 'Not specified',
-                      instagram_handle: undefined,
-                      age: undefined
-                    }
-                    setSelectedMatchProfile(fallbackProfile)
-                  }
-                }}
-              />
+                  }}
+                />
+              )}
             </div>
           )}
 
@@ -1714,7 +1747,7 @@ function DatingZone({ feed, filters, setFilters, filtersVisible, setFiltersVisib
             position: 'relative',
             overflow: 'hidden'
           }}
-          onClick={() => onViewProfile(currentProfile)}
+          // onClick={() => onViewProfile(currentProfile)} // Disabled - profile modal not needed since all info is in the card
         >
           {/* Background decorative elements */}
           <div style={{
@@ -3723,21 +3756,7 @@ function RequestRow({item,me,onAccepted,onViewProfile}:{item:{id:string;from_use
 
 function ProfileDisplay({ me }: { me: any }) {
   if (!me) {
-    return (
-      <div className="responsive-empty" style={{
-        textAlign: 'center', 
-        padding: '40px 20px',
-        background: '#F5F1E8',
-        borderRadius: '16px',
-        border: '1px solid #107980',
-        margin: '20px 0'
-      }}>
-        <svg width="48" height="48" fill="#107980" viewBox="0 0 24 24" style={{marginBottom: 16}}>
-          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-        </svg>
-        <h3 style={{margin: '0 0 8px 0', color: '#000000', fontSize: '18px', fontWeight: 600}}>Loading profile...</h3>
-      </div>
-    )
+    return <LoadingSpinner message="Loading your profile..." />
   }
   
   return (

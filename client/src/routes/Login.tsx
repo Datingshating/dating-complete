@@ -34,8 +34,15 @@ export function Login(){
         localStorage.setItem('authToken', data.token)
         localStorage.setItem('userId', data.userId)
         localStorage.setItem('userName', data.name)
+        localStorage.setItem('isAdmin', data.is_admin ? 'true' : 'false')
         sessionStorage.setItem('userId', data.userId)
-        nav('/dashboard')
+        
+        // Redirect admin users to admin panel, regular users to dashboard
+        if (data.is_admin) {
+          nav('/admin')
+        } else {
+          nav('/dashboard')
+        }
       } else setErr(data?.error||'Failed')
     }catch{ setErr('Failed') }
   }

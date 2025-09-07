@@ -303,7 +303,7 @@ app.post("/api/login", async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('users')
-      .select('id, password_hash, name')
+      .select('id, password_hash, name, is_admin')
       .eq('login_id', loginId)
       .eq('status', 'approved')
       .single();
@@ -325,7 +325,8 @@ app.post("/api/login", async (req, res) => {
       { 
         userId: data.id, 
         loginId: loginId,
-        name: data.name 
+        name: data.name,
+        is_admin: data.is_admin
       },
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '7d' }
@@ -343,6 +344,7 @@ app.post("/api/login", async (req, res) => {
       ok: true, 
       userId: data.id,
       name: data.name,
+      is_admin: data.is_admin,
       token: token // Also send token in response for client-side storage
     });
   } catch (err) {
@@ -375,6 +377,37 @@ app.post("/api/logout", (req, res) => {
   res.json({ ok: true, message: "Logged out successfully" });
 });
 
+// Admin verification endpoint (extra security check)
+app.get("/api/admin/verify", authenticateToken, async (req, res) => {
+  const userId = (req as any).user.userId;
+  
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, is_admin, status')
+      .eq('id', userId)
+      .single();
+
+    if (error || !data) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Extra security: Check if user is admin and approved
+    if (!data.is_admin || data.status !== 'approved') {
+      return res.status(403).json({ error: "Admin access denied" });
+    }
+
+    res.json({ 
+      ok: true, 
+      is_admin: true,
+      user_id: userId 
+    });
+  } catch (err) {
+    console.error('Admin verification error:', err);
+    res.status(500).json({ error: "Admin verification failed" });
+  }
+});
+
 // Current user: fetch profile (protected route)
   app.get("/api/me", authenticateToken, async (req, res) => {
     const userId = (req as any).user.userId;
@@ -383,7 +416,7 @@ app.post("/api/logout", (req, res) => {
       const { data, error } = await supabase
         .from('users')
         .select(`
-          id, name, gender, date_of_birth, whatsapp_number, instagram_handle, status, location, custom_location,
+          id, name, gender, date_of_birth, whatsapp_number, instagram_handle, status, location, custom_location, is_admin,
           profiles (
             bio, relationship_status, interest_1, interest_2, interest_3, interest_4, interest_5, interest_6
           )
@@ -704,25 +737,17 @@ app.post("/api/requests/:id/accept", async (req, res) => {
     }
 
     // Decrement matches_remaining for both users if not unlimited
-    const updates: Promise<any>[] = [];
     if (packA.matches_remaining !== -1) {
-      updates.push(
-        supabase
-          .from('user_packs')
-          .update({ matches_remaining: packA.matches_remaining - 1 })
-          .eq('user_id', a)
-      );
+      await supabase
+        .from('user_packs')
+        .update({ matches_remaining: packA.matches_remaining - 1 })
+        .eq('user_id', a);
     }
     if (packB.matches_remaining !== -1) {
-      updates.push(
-        supabase
-          .from('user_packs')
-          .update({ matches_remaining: packB.matches_remaining - 1 })
-          .eq('user_id', b)
-      );
-    }
-    if (updates.length > 0) {
-      await Promise.allSettled(updates);
+      await supabase
+        .from('user_packs')
+        .update({ matches_remaining: packB.matches_remaining - 1 })
+        .eq('user_id', b);
     }
 
     console.log(`Match created and request deleted for users ${a} and ${b}`);
@@ -765,7 +790,7 @@ app.get("/api/matches", async (req, res) => {
     }
 
     // Process the data to get the other user's information
-    const processedData = data.map(match => {
+    const processedData = data.map((match: any) => {
       const isUserA = match.user_a_id === userId;
       const otherUser = isUserA ? match.user_b : match.user_a;
       const otherUserId = isUserA ? match.user_b_id : match.user_a_id;
@@ -1003,7 +1028,7 @@ app.get("/api/requests/incoming", async (req, res) => {
     }
 
     // Flatten the data structure
-    const flattenedData = data.map(item => ({
+    const flattenedData = data.map((item: any) => ({
       id: item.id,
       from_user_id: item.from_user_id,
       message: item.message,
@@ -1107,18 +1132,18 @@ app.get("/api/profile/:userId", async (req, res) => {
       location: data.location,
       custom_location: data.custom_location,
       status: data.status,
-      bio: data.profiles.bio,
-      relationship_status: data.profiles.relationship_status,
-      partner_expectations: data.profiles.partner_expectations,
-      interest_1: data.profiles.interest_1,
-      interest_2: data.profiles.interest_2,
-      interest_3: data.profiles.interest_3,
-      interest_4: data.profiles.interest_4,
-      interest_5: data.profiles.interest_5,
-      interest_6: data.profiles.interest_6,
-      is_visible: data.profiles.is_visible,
-      profile_created_at: data.profiles.created_at,
-      profile_updated_at: data.profiles.updated_at
+      bio: (data.profiles as any).bio,
+      relationship_status: (data.profiles as any).relationship_status,
+      partner_expectations: (data.profiles as any).partner_expectations,
+      interest_1: (data.profiles as any).interest_1,
+      interest_2: (data.profiles as any).interest_2,
+      interest_3: (data.profiles as any).interest_3,
+      interest_4: (data.profiles as any).interest_4,
+      interest_5: (data.profiles as any).interest_5,
+      interest_6: (data.profiles as any).interest_6,
+      is_visible: (data.profiles as any).is_visible,
+      profile_created_at: (data.profiles as any).created_at,
+      profile_updated_at: (data.profiles as any).updated_at
     };
     
     res.json(profileData);
@@ -1234,11 +1259,12 @@ app.post("/api/payment/activate-pack-manual", async (req, res) => {
   
   try {
     // Get pack details
-    const packDetails: any = {
+    const packDetailsMap: any = {
       starter: { name: 'Starter', matches: 5, requests: 50 },
       intermediate: { name: 'Intermediate', matches: 8, requests: 100 },
       pro: { name: 'Pro', matches: 15, requests: -1 } // -1 for unlimited
-    }[packId];
+    };
+    const packDetails = packDetailsMap[packId as keyof typeof packDetailsMap];
     
     if (!packDetails) {
       throw new Error('Invalid pack ID');
@@ -1394,11 +1420,12 @@ app.post("/api/payment/verify", async (req, res) => {
     }
     
     // Get pack details
-    const packDetails: any = {
+    const packDetailsMap: any = {
       starter: { name: 'Starter', matches: 5, requests: 50 },
       intermediate: { name: 'Intermediate', matches: 8, requests: 100 },
       pro: { name: 'Pro', matches: 15, requests: -1 } // -1 for unlimited
-    }[packId];
+    };
+    const packDetails = packDetailsMap[packId as keyof typeof packDetailsMap];
     
     if (!packDetails) {
       throw new Error('Invalid pack ID');
@@ -1532,6 +1559,251 @@ app.post("/api/admin/approve", async (req, res) => {
   } catch (err) {
     console.error('Error approving user:', err);
     res.status(500).json({ error: "Failed to approve user" });
+  }
+});
+
+// Admin: Get all users with their credentials and profile info
+app.get("/api/admin/users", async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select(`
+        id, name, gender, date_of_birth, whatsapp_number, instagram_handle, location, custom_location, 
+        status, login_id, created_at, updated_at,
+        profiles!inner (
+          bio, relationship_status, partner_expectations, interest_1, interest_2, interest_3, 
+          interest_4, interest_5, interest_6, is_visible, created_at, updated_at
+        )
+      `)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    // Flatten the data structure
+    const flattenedData = data.map(item => {
+      const profile = Array.isArray(item.profiles) ? item.profiles[0] : item.profiles;
+      return {
+        id: item.id,
+        name: item.name,
+        gender: item.gender,
+        date_of_birth: item.date_of_birth,
+        whatsapp_number: item.whatsapp_number,
+        instagram_handle: item.instagram_handle,
+        location: item.location,
+        custom_location: item.custom_location,
+        status: item.status,
+        login_id: item.login_id,
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+        bio: profile?.bio || '',
+        relationship_status: profile?.relationship_status || '',
+        partner_expectations: profile?.partner_expectations || '',
+        interest_1: profile?.interest_1 || '',
+        interest_2: profile?.interest_2 || '',
+        interest_3: profile?.interest_3 || '',
+        interest_4: profile?.interest_4 || '',
+        interest_5: profile?.interest_5 || '',
+        interest_6: profile?.interest_6 || '',
+        is_visible: profile?.is_visible || false,
+        profile_created_at: profile?.created_at,
+        profile_updated_at: profile?.updated_at
+      };
+    });
+
+    res.json(flattenedData);
+  } catch (err) {
+    console.error('Error fetching all users:', err);
+    res.status(500).json({ error: "Failed to fetch users" });
+  }
+});
+
+// Admin: Get user packs and purchases
+app.get("/api/admin/packs", async (req, res) => {
+  try {
+    // Get user packs (current active packs)
+    const { data: userPacks, error: packsError } = await supabase
+      .from('user_packs')
+      .select(`
+        id, user_id, pack_id, pack_name, matches_total, matches_remaining, 
+        requests_total, requests_remaining, amount_paid, purchased_at, expires_at, created_at, updated_at,
+        users!inner (
+          id, name, whatsapp_number, instagram_handle, login_id
+        )
+      `)
+      .order('purchased_at', { ascending: false });
+
+    if (packsError) {
+      throw packsError;
+    }
+
+    // Get payment orders (all payment history)
+    const { data: paymentOrders, error: ordersError } = await supabase
+      .from('payment_orders')
+      .select(`
+        id, user_id, razorpay_order_id, pack_id, amount, currency, status, 
+        razorpay_payment_id, created_at, updated_at,
+        users!inner (
+          id, name, whatsapp_number, instagram_handle, login_id
+        )
+      `)
+      .order('created_at', { ascending: false });
+
+    if (ordersError) {
+      throw ordersError;
+    }
+
+    // Get legacy purchases (WhatsApp payments)
+    const { data: purchases, error: purchasesError } = await supabase
+      .from('purchases')
+      .select(`
+        id, user_id, pack_size, amount_rupees, status, created_at,
+        users!inner (
+          id, name, whatsapp_number, instagram_handle, login_id
+        )
+      `)
+      .order('created_at', { ascending: false });
+
+    if (purchasesError) {
+      throw purchasesError;
+    }
+
+    // Flatten user packs data
+    const flattenedPacks = userPacks.map((pack: any) => ({
+      id: pack.id,
+      user_id: pack.user_id,
+      user_name: pack.users.name,
+      user_whatsapp: pack.users.whatsapp_number,
+      user_instagram: pack.users.instagram_handle,
+      user_login_id: pack.users.login_id,
+      pack_id: pack.pack_id,
+      pack_name: pack.pack_name,
+      matches_total: pack.matches_total,
+      matches_remaining: pack.matches_remaining,
+      requests_total: pack.requests_total,
+      requests_remaining: pack.requests_remaining,
+      amount_paid: pack.amount_paid,
+      purchased_at: pack.purchased_at,
+      expires_at: pack.expires_at,
+      created_at: pack.created_at,
+      updated_at: pack.updated_at,
+      type: 'active_pack'
+    }));
+
+    // Flatten payment orders data
+    const flattenedOrders = paymentOrders.map((order: any) => ({
+      id: order.id,
+      user_id: order.user_id,
+      user_name: order.users.name,
+      user_whatsapp: order.users.whatsapp_number,
+      user_instagram: order.users.instagram_handle,
+      user_login_id: order.users.login_id,
+      pack_id: order.pack_id,
+      amount: order.amount / 100, // Convert from paisa to rupees
+      currency: order.currency,
+      status: order.status,
+      razorpay_order_id: order.razorpay_order_id,
+      razorpay_payment_id: order.razorpay_payment_id,
+      created_at: order.created_at,
+      updated_at: order.updated_at,
+      type: 'payment_order'
+    }));
+
+    // Flatten purchases data
+    const flattenedPurchases = purchases.map((purchase: any) => ({
+      id: purchase.id,
+      user_id: purchase.user_id,
+      user_name: purchase.users.name,
+      user_whatsapp: purchase.users.whatsapp_number,
+      user_instagram: purchase.users.instagram_handle,
+      user_login_id: purchase.users.login_id,
+      pack_size: purchase.pack_size,
+      amount_rupees: purchase.amount_rupees,
+      status: purchase.status,
+      created_at: purchase.created_at,
+      type: 'legacy_purchase'
+    }));
+
+    res.json({
+      activePacks: flattenedPacks,
+      paymentOrders: flattenedOrders,
+      legacyPurchases: flattenedPurchases
+    });
+  } catch (err) {
+    console.error('Error fetching packs data:', err);
+    res.status(500).json({ error: "Failed to fetch packs data" });
+  }
+});
+
+// Admin: Get full profile details for a specific user
+app.get("/api/admin/profile/:userId", async (req, res) => {
+  const { userId } = req.params;
+  if (!userId) return res.status(400).json({ error: "Missing userId" });
+  
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select(`
+        id, name, gender, date_of_birth, whatsapp_number, instagram_handle, location, custom_location, 
+        status, login_id, created_at, updated_at,
+        profiles!inner (
+          bio, relationship_status, partner_expectations, interest_1, interest_2, interest_3, 
+          interest_4, interest_5, interest_6, is_visible, created_at, updated_at
+        )
+      `)
+      .eq('id', userId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return res.status(404).json({ error: "User not found" });
+      }
+      throw error;
+    }
+
+    // Calculate age from date_of_birth
+    const birthDate = new Date(data.date_of_birth);
+    const today = new Date();
+    const age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate()) ? age - 1 : age;
+    
+    const profile = Array.isArray(data.profiles) ? data.profiles[0] : data.profiles;
+    
+    // Format the response
+    const profileData = {
+      id: data.id,
+      name: data.name,
+      gender: data.gender,
+      age: actualAge,
+      date_of_birth: data.date_of_birth,
+      whatsapp_number: data.whatsapp_number,
+      instagram_handle: data.instagram_handle,
+      location: data.location,
+      custom_location: data.custom_location,
+      status: data.status,
+      login_id: data.login_id,
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+      bio: profile?.bio || '',
+      relationship_status: profile?.relationship_status || '',
+      partner_expectations: profile?.partner_expectations || '',
+      interest_1: profile?.interest_1 || '',
+      interest_2: profile?.interest_2 || '',
+      interest_3: profile?.interest_3 || '',
+      interest_4: profile?.interest_4 || '',
+      interest_5: profile?.interest_5 || '',
+      interest_6: profile?.interest_6 || '',
+      is_visible: profile?.is_visible || false,
+      profile_created_at: profile?.created_at,
+      profile_updated_at: profile?.updated_at
+    };
+    
+    res.json(profileData);
+  } catch (err) {
+    console.error('Failed to fetch user profile:', err);
+    res.status(500).json({ error: "Failed to fetch user profile" });
   }
 });
 

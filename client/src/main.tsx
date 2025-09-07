@@ -9,6 +9,7 @@ import { Dashboard } from './routes/Dashboard'
 import { Admin } from './routes/Admin'
 import { Terms } from './routes/Terms'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import { AdminProtectedRoute } from './components/AdminProtectedRoute'
 import '../globals.css'
 
 const router = createBrowserRouter([
@@ -27,9 +28,9 @@ const router = createBrowserRouter([
   { 
     path: '/admin', 
     element: (
-      <ProtectedRoute>
+      <AdminProtectedRoute>
         <Admin />
-      </ProtectedRoute>
+      </AdminProtectedRoute>
     ) 
   },
 ])

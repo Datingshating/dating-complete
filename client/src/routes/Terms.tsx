@@ -11,7 +11,7 @@ export function Terms() {
               to="/" 
               className="flex items-center gap-3 text-primary hover:text-primary/80 transition-colors"
             >
-              <span className="text-3xl">💕</span>
+              
               <h1 className="font-heading text-2xl font-bold">Whispyr</h1>
             </Link>
             <Link 
@@ -213,7 +213,7 @@ export function Terms() {
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
             <div className="flex items-center justify-center gap-3 mb-4">
-              <span className="text-2xl">💕</span>
+              <span className="text-2xl"></span>
               <h3 className="font-heading text-xl font-bold text-card-foreground">Whispyr</h3>
             </div>
             <p className="text-muted-foreground text-sm">
