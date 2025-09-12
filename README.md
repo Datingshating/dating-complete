@@ -10,7 +10,7 @@ Tech: Node/Express + PostgreSQL (server) and React + Vite (client).
 DATABASE_URL=postgres://user:pass@localhost:5432/vibetext
 PORT=8080
 CORS_ORIGIN=http://localhost:5173
-WHATSAPP_BUSINESS_PHONE=911234567890
+WHATSAPP_NUMBER=+919631126841
 ```
 
 2) Apply schema:

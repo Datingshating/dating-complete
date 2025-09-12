@@ -139,7 +139,7 @@ export function Admin(){
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([])
   const [allUsers, setAllUsers] = useState<User[]>([])
   const [packData, setPackData] = useState<PackData | null>(null)
-  const [credentials, setCredentials] = useState<{loginId: string; password: string} | undefined>()
+  const [credentials, setCredentials] = useState<{loginId: string; password: string; whatsappUrl?: string} | undefined>()
   const [selectedProfile, setSelectedProfile] = useState<UserProfile | null>(null)
   const [selectedUserForPack, setSelectedUserForPack] = useState<User | null>(null)
   const [userPackDetails, setUserPackDetails] = useState<any>(null)
@@ -246,9 +246,12 @@ export function Admin(){
       })
       const data = await r.json()
       if (r.ok) { 
-        setCredentials(data.credentials)
+        setCredentials({
+          ...data.credentials,
+          whatsappUrl: data.whatsappUrl
+        })
         setPendingUsers(pendingUsers.filter(i => i.id !== userId))
-        alert('User approved successfully!')
+        alert('User approved successfully! Credentials ready to send via WhatsApp.')
       } else {
         alert(data?.error || 'Failed to approve user')
       }
@@ -821,9 +824,35 @@ export function Admin(){
               <div style={{ marginBottom: '16px' }}>
                 <strong>Password:</strong> <span style={{ fontFamily: 'monospace' }}>{credentials.password}</span>
               </div>
-              <div style={{ color: 'var(--muted)', fontSize: '14px' }}>
+              <div style={{ color: 'var(--muted)', fontSize: '14px', marginBottom: '16px' }}>
                 Share these credentials with the user via WhatsApp.
               </div>
+              {credentials.whatsappUrl && (
+                <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                  <button 
+                    style={{
+                      ...btnPrimary,
+                      background: 'linear-gradient(135deg, #25D366, #128C7E)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}
+                    onClick={() => window.open(credentials.whatsappUrl, '_blank')}
+                  >
+                    <span>📱</span>
+                    <span>Send via WhatsApp</span>
+                  </button>
+                  <button 
+                    style={btnSecondary}
+                    onClick={() => {
+                      navigator.clipboard.writeText(`Login ID: ${credentials.loginId}\nPassword: ${credentials.password}`);
+                      alert('Credentials copied to clipboard!');
+                    }}
+                  >
+                    📋 Copy Credentials
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -12,7 +12,7 @@ export function Terms() {
               className="flex items-center gap-3 text-primary hover:text-primary/80 transition-colors"
             >
               
-              <h1 className="font-heading text-2xl font-bold">Whispyr</h1>
+              <h1 className="font-heading text-2xl font-bold">Snift</h1>
             </Link>
             <Link 
               to="/dashboard" 
@@ -59,7 +59,7 @@ export function Terms() {
                 1. Acceptance of Terms
               </h2>
               <p className="text-muted-foreground leading-relaxed mb-4">
-                By accessing and using Whispyr, you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to abide by the above, please do not use this service.
+                By accessing and using Snift, you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to abide by the above, please do not use this service.
               </p>
             </section>
 
@@ -68,7 +68,7 @@ export function Terms() {
                 2. Description of Service
               </h2>
               <p className="text-muted-foreground leading-relaxed mb-4">
-                Whispyr is a photo-free dating platform that connects individuals through meaningful conversations and shared interests. Our service focuses on authentic connections based on personality, values, and compatibility rather than physical appearance.
+                Snift is a photo-free dating platform that connects individuals through meaningful conversations and shared interests. Our service focuses on authentic connections based on personality, values, and compatibility rather than physical appearance.
               </p>
             </section>
 
@@ -78,7 +78,7 @@ export function Terms() {
               </h2>
               <div className="text-muted-foreground leading-relaxed space-y-4">
                 <p>
-                  To use Whispyr, you must create an account by providing accurate and complete information. You are responsible for:
+                  To use Snift, you must create an account by providing accurate and complete information. You are responsible for:
                 </p>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>Maintaining the confidentiality of your account credentials</li>
@@ -94,7 +94,7 @@ export function Terms() {
                 4. User Conduct and Content Guidelines
               </h2>
               <div className="text-muted-foreground leading-relaxed space-y-4">
-                <p>You agree to use Whispyr responsibly and in accordance with our community standards:</p>
+                <p>You agree to use Snift responsibly and in accordance with our community standards:</p>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>Be respectful and kind to other users</li>
                   <li>Do not share inappropriate, offensive, or harmful content</li>
@@ -121,7 +121,7 @@ export function Terms() {
               </h2>
               <div className="text-muted-foreground leading-relaxed space-y-4">
                 <p>
-                  Whispyr offers premium features and subscription plans. By purchasing premium features:
+                  Snift offers premium features and subscription plans. By purchasing premium features:
                 </p>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>You agree to pay all applicable fees</li>
@@ -152,7 +152,7 @@ export function Terms() {
                 8. Intellectual Property
               </h2>
               <p className="text-muted-foreground leading-relaxed mb-4">
-                All content, features, and functionality of Whispyr are owned by us and are protected by copyright, trademark, and other intellectual property laws. You may not reproduce, distribute, or create derivative works without our written permission.
+                All content, features, and functionality of Snift are owned by us and are protected by copyright, trademark, and other intellectual property laws. You may not reproduce, distribute, or create derivative works without our written permission.
               </p>
             </section>
 
@@ -161,7 +161,7 @@ export function Terms() {
                 9. Limitation of Liability
               </h2>
               <p className="text-muted-foreground leading-relaxed mb-4">
-                Whispyr is provided "as is" without warranties of any kind. We are not liable for any damages arising from your use of the service, including but not limited to direct, indirect, incidental, or consequential damages.
+                Snift is provided "as is" without warranties of any kind. We are not liable for any damages arising from your use of the service, including but not limited to direct, indirect, incidental, or consequential damages.
               </p>
             </section>
 
@@ -192,8 +192,8 @@ export function Terms() {
               </p>
               <div className="bg-muted p-4 rounded-lg">
                 <p className="text-muted-foreground">
-                  <strong>Email:</strong> support@whispyr.com<br />
-                  <strong>Address:</strong> Whispyr Support Team<br />
+                  <strong>Email:</strong> support@snift.com<br />
+                  <strong>Address:</strong> Snift Support Team<br />
                   <strong>Response Time:</strong> We typically respond within 24-48 hours
                 </p>
               </div>
@@ -201,7 +201,7 @@ export function Terms() {
 
             <div className="border-t border-border pt-8 mt-12">
               <p className="text-center text-sm text-muted-foreground">
-                By using Whispyr, you acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions.
+                By using Snift, you acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions.
               </p>
             </div>
           </div>
@@ -214,7 +214,7 @@ export function Terms() {
           <div className="text-center">
             <div className="flex items-center justify-center gap-3 mb-4">
               <span className="text-2xl"></span>
-              <h3 className="font-heading text-xl font-bold text-card-foreground">Whispyr</h3>
+              <h3 className="font-heading text-xl font-bold text-card-foreground">Snift</h3>
             </div>
             <p className="text-muted-foreground text-sm">
               Find Your Perfect Match Through Words, Not Photos

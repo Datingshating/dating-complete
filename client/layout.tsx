@@ -21,7 +21,7 @@ const lato = Lato({
 })
 
 export const metadata: Metadata = {
-  title: "Whispyr - Find Your Perfect Match",
+  title: "Snift - Character Finds Connection",
   description: "Modern dating app for meaningful connections",
   generator: "v0.app",
 }

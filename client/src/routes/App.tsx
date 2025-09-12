@@ -21,12 +21,12 @@ function Hero() {
       <div className="flex items-center justify-center gap-4 mb-8">
         <span className="text-6xl">💕</span>
         <h1 className="font-heading text-6xl md:text-7xl font-black text-primary m-0">
-          Whispyr
+          Snift
         </h1>
       </div>
       
       <h2 className="font-heading text-3xl md:text-4xl font-bold text-foreground mb-6 max-w-4xl mx-auto">
-        Find Your Perfect Match Through Words, Not Photos
+        Character Finds Connection
       </h2>
       
       <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
@@ -79,7 +79,7 @@ function Features() {
     <section className="py-20 px-5 bg-card rounded-3xl my-10 animate-slide-up">
       <div className="text-center mb-15">
         <h2 className="font-heading text-4xl md:text-5xl font-black text-card-foreground mb-4">
-          Why Choose Whispyr?
+          Why Choose Snift?
         </h2>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
           Experience dating the way it should be - authentic, meaningful, and focused on what really matters.
@@ -111,7 +111,7 @@ function Benefits() {
     <section className="py-20 px-5 bg-gradient-to-br from-primary to-secondary rounded-3xl my-10 text-primary-foreground animate-scale-in">
       <div className="text-center mb-15">
         <h2 className="font-heading text-4xl md:text-5xl font-black mb-4">
-          The Whispyr Difference
+          The Snift Difference
         </h2>
         <p className="text-lg opacity-90 max-w-2xl mx-auto">
           Join thousands who've found meaningful connections through our unique approach to online dating.
@@ -169,7 +169,7 @@ function HowItWorks() {
     <section className="py-20 px-5 bg-card rounded-3xl my-10 animate-slide-up">
       <div className="text-center mb-15">
         <h2 className="font-heading text-4xl md:text-5xl font-black text-card-foreground mb-4">
-          How Whispyr Works
+          How Snift Works
         </h2>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
           Four simple steps to finding your perfect match through authentic connections.
@@ -252,7 +252,7 @@ function CTA() {
         Ready to Find Your Perfect Match?
       </h2>
       <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-10">
-        Join Whispyr today and start building meaningful connections that go beyond the surface. Your soulmate is waiting! 💕
+        Join Snift today and start building meaningful connections that go beyond the surface. Your soulmate is waiting! 💕
       </p>
       
       <div className="flex gap-5 justify-center flex-wrap mb-15">
@@ -260,7 +260,7 @@ function CTA() {
           to="/register" 
           className="bg-primary text-primary-foreground font-bold px-10 py-5 rounded-lg text-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
         >
-          💖 Join Whispyr Now
+          💖 Join Snift Now
         </Link>
       </div>
       

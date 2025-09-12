@@ -1774,7 +1774,7 @@ app.get("/api/admin/user-pack/:userId", authenticateToken, async (req, res) => {
 });
 // Payment info redirect (WhatsApp) - Legacy
 app.get("/api/payment/whatsapp-link", (_req, res) => {
-    const phone = process.env.WHATSAPP_BUSINESS_PHONE || "911234567890";
+    const phone = process.env.WHATSAPP_NUMBER || "+919631126841";
     const text = encodeURIComponent("Hi! I'd like to purchase a match pack. My loginId is <your-id>.");
     const url = `https://wa.me/${phone}?text=${text}`;
     res.json({ url });

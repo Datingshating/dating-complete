@@ -16,7 +16,7 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: process.env.CORS_ORIGIN?.split(",") || ["http://localhost:5173"],
+    origin: process.env.CORS_ORIGIN?.split(",") || ["http://localhost:5173", "https://thesnift.com"],
     credentials: true,
   },
   transports: ['websocket', 'polling'],
@@ -127,11 +127,11 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN?.split(",") || ["http://localhost:5173"],
+    origin: process.env.CORS_ORIGIN?.split(",") || ["http://localhost:5173", "https://thesnift.com"],
     credentials: true,
   })
 );
-console.log("Hi  ",process.env.CORS_ORIGIN?.split(",") || ["http://localhost:5173"])
+console.log("CORS origins:", process.env.CORS_ORIGIN?.split(",") || ["http://localhost:5173", "https://thesnift.com"])
 
 // Initialize Supabase client
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
@@ -1547,6 +1547,17 @@ app.post("/api/admin/approve", async (req, res) => {
   if (!userId) return res.status(400).json({ error: "Missing userId" });
 
   try {
+    // Get user data first
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('whatsapp_number, name')
+      .eq('id', userId)
+      .single();
+
+    if (userError || !userData) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
     // Generate login ID and password
     const loginId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
     const password = Math.random().toString(36).substr(2, 8);
@@ -1571,13 +1582,34 @@ app.post("/api/admin/approve", async (req, res) => {
 
     console.log(`User ${userId} approved with login ID: ${loginId}`);
 
+    // Generate WhatsApp credentials link
+    const userPhone = userData.whatsapp_number;
+    const userName = userData.name || 'User';
+    const cleanPhone = userPhone.replace(/[\s+]/g, '');
+    
+    const message = `🎉 Welcome to Snift, ${userName}!
+
+Your account has been approved! Here are your login credentials:
+
+📱 Login ID: ${loginId}
+🔑 Password: ${password}
+
+You can now login at: ${process.env.CLIENT_URL || 'http://localhost:5173'}/login
+
+Happy matching! 💕`;
+
+    const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+
+    console.log('Generated WhatsApp credentials URL:', whatsappUrl);
+
     res.json({
       ok: true,
       message: "User approved successfully",
       credentials: {
         loginId,
         password
-      }
+      },
+      whatsappUrl
     });
   } catch (err) {
     console.error('Error approving user:', err);
@@ -2053,14 +2085,80 @@ app.get("/api/admin/user-pack/:userId", authenticateToken, async (req, res) => {
   }
 });
 
-// Payment info redirect (WhatsApp) - Legacy
+// Payment info redirect (WhatsApp)
 app.get("/api/payment/whatsapp-link", (_req, res) => {
-  const phone = process.env.WHATSAPP_BUSINESS_PHONE || "911234567890";
-  const text = encodeURIComponent(
-    "Hi! I'd like to purchase a match pack. My loginId is <your-id>."
-  );
-  const url = `https://wa.me/${phone}?text=${text}`;
+  const phone = process.env.WHATSAPP_NUMBER || "+919631126841";
+  // Remove + sign and any spaces for WhatsApp API
+  const cleanPhone = phone.replace(/[\s+]/g, '');
+  const text = "Hi! I want to purchase a pack";
+  
+  // Try the simplest approach first
+  const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
+  
+  console.log('Generated WhatsApp URL:', url);
+  console.log('Phone number:', cleanPhone);
+  console.log('Message:', text);
+  console.log('Encoded message:', encodeURIComponent(text));
+  
   res.json({ url });
+});
+
+// Send credentials via WhatsApp
+app.post("/api/admin/send-credentials", async (req, res) => {
+  const { userId, loginId, password, userName } = req.body || {};
+  
+  if (!userId || !loginId || !password) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  try {
+    // Get user's WhatsApp number
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('whatsapp_number, name')
+      .eq('id', userId)
+      .single();
+
+    if (userError || !userData) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const userPhone = userData.whatsapp_number;
+    const actualUserName = userData.name || userName || 'User';
+    
+    // Remove + sign and any spaces for WhatsApp API
+    const cleanPhone = userPhone.replace(/[\s+]/g, '');
+    
+    // Create the credentials message
+    const message = `🎉 Welcome to Snift, ${actualUserName}!
+
+Your account has been approved! Here are your login credentials:
+
+📱 Login ID: ${loginId}
+🔑 Password: ${password}
+
+You can now login at: ${process.env.CLIENT_URL || 'http://localhost:5173'}/login
+
+Happy matching! 💕`;
+
+    // Generate WhatsApp URL
+    const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+    
+    console.log('Sending credentials via WhatsApp:');
+    console.log('User:', actualUserName);
+    console.log('Phone:', cleanPhone);
+    console.log('Login ID:', loginId);
+    console.log('WhatsApp URL:', url);
+    
+    res.json({ 
+      success: true, 
+      url,
+      message: "Credentials WhatsApp link generated successfully" 
+    });
+  } catch (err) {
+    console.error('Error generating WhatsApp credentials link:', err);
+    res.status(500).json({ error: "Failed to generate WhatsApp link" });
+  }
 });
 
 // Socket.IO event handlers

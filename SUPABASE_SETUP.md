@@ -28,7 +28,7 @@ VITE_SUPERBASE_ANON_KEY=your_supabase_anon_key
 CORS_ORIGIN=http://localhost:5173
 RAZORPAY_KEY_ID=your_razorpay_key
 RAZORPAY_SECRET=your_razorpay_secret
-WHATSAPP_BUSINESS_PHONE=your_whatsapp_number
+WHATSAPP_NUMBER=+919631126841
 ```
 
 ### Client Environment Variables
