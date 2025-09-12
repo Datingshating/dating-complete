@@ -127,10 +127,17 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN?.split(",") || ["http://localhost:5173", "https://thesnift.com"],
+    origin: [
+      "http://localhost:5173",   // for local dev
+      "https://thesnift.com"     // for production
+    ],
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
   })
 );
+
+app.options("*", cors()); // handle preflight
 console.log("CORS origins:", process.env.CORS_ORIGIN?.split(",") || ["http://localhost:5173", "https://thesnift.com"])
 
 // Initialize Supabase client
