@@ -7,7 +7,11 @@
     "dev": "nodemon --watch src --exec \"tsx src/index.ts\"",
     "build": "tsc",
     "start": "node dist/index.js",
-    "db:sql": "set PGPASSWORD=Rishi#1203 && psql -U postgres -d dating -f src/schema.sql"
+    "db:sql": "set PGPASSWORD=Rishi#1203 && psql -U postgres -d dating -f src/schema.sql",
+    "docker:build": "docker build -t dating-server .",
+    "docker:run": "docker run -p 8080:8080 --env-file .env dating-server",
+    "docker:dev": "docker-compose up --build",
+    "docker:stop": "docker-compose down"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.56.0",

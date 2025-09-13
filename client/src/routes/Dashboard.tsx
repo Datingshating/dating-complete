@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useLayoutEffect  } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { io, Socket } from 'socket.io-client'
 import { LoadingSpinner } from '../components/LoadingSpinner'
+import { Helmet } from 'react-helmet-async'
 
 type Profile = { 
   id:string; 
@@ -301,16 +302,32 @@ export function Dashboard(){
   }
 
   return (
-    <div className="responsive-main" style={{
-      display: 'flex', 
-      flexDirection: 'column',
-      minHeight: '100vh', 
-      background: '#F5F1E8',
-      paddingBottom: '88px', // Space for footer navigation
-      paddingLeft: '16px',
-      paddingRight: '16px',
-      paddingTop: '16px'
-    }}>
+    <>
+      <Helmet>
+        <title>Dashboard | Snift - Your Dating Journey</title>
+        <meta name="description" content="Access your Snift dashboard to discover meaningful connections, manage your profile, and chat with matches. Continue your journey of authentic relationships." />
+        <meta name="keywords" content="snift dashboard, dating dashboard, profile management, matches, chat, meaningful connections" />
+        <link rel="canonical" href="https://thesnift.com/dashboard" />
+        
+        <meta property="og:title" content="Dashboard | Snift - Your Dating Journey" />
+        <meta property="og:description" content="Access your Snift dashboard to discover meaningful connections, manage your profile, and chat with matches." />
+        <meta property="og:url" content="https://thesnift.com/dashboard" />
+        <meta property="og:type" content="website" />
+        
+        <meta property="twitter:title" content="Dashboard | Snift - Your Dating Journey" />
+        <meta property="twitter:description" content="Access your Snift dashboard to discover meaningful connections, manage your profile, and chat with matches." />
+        <meta property="twitter:url" content="https://thesnift.com/dashboard" />
+      </Helmet>
+      <div className="responsive-main" style={{
+        display: 'flex', 
+        flexDirection: 'column',
+        minHeight: '100vh', 
+        background: '#F5F1E8',
+        paddingBottom: '88px', // Space for footer navigation
+        paddingLeft: '16px',
+        paddingRight: '16px',
+        paddingTop: '16px'
+      }}>
       {/* Top Header */}
       <header className="app-header" id="app-header">
         <h1 className="header-brand" style={{
@@ -999,7 +1016,8 @@ export function Dashboard(){
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   )
 }
 
@@ -5617,7 +5635,7 @@ function AnimatedMessagePopup({
           50% { transform: scale(1.1); }
         }
       `}</style>
-    </div>
+      </div>
   );
 }
 

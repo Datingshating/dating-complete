@@ -1,8 +1,25 @@
 import { Link } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 
 export function Terms() {
   return (
-    <div className="min-h-screen bg-background">
+    <>
+      <Helmet>
+        <title>Terms and Conditions | Snift - No Photo Dating App</title>
+        <meta name="description" content="Read Snift's Terms and Conditions. Learn about our community guidelines, user responsibilities, and policies for our photo-free dating platform focused on meaningful connections." />
+        <meta name="keywords" content="snift terms, terms and conditions, dating app terms, community guidelines, user agreement, privacy policy" />
+        <link rel="canonical" href="https://thesnift.com/terms" />
+        
+        <meta property="og:title" content="Terms and Conditions | Snift - No Photo Dating App" />
+        <meta property="og:description" content="Read Snift's Terms and Conditions. Learn about our community guidelines, user responsibilities, and policies for our photo-free dating platform." />
+        <meta property="og:url" content="https://thesnift.com/terms" />
+        <meta property="og:type" content="website" />
+        
+        <meta property="twitter:title" content="Terms and Conditions | Snift - No Photo Dating App" />
+        <meta property="twitter:description" content="Read Snift's Terms and Conditions. Learn about our community guidelines, user responsibilities, and policies for our photo-free dating platform." />
+        <meta property="twitter:url" content="https://thesnift.com/terms" />
+      </Helmet>
+      <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-card border-b border-border sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
@@ -236,6 +253,7 @@ export function Terms() {
           </div>
         </div>
       </footer>
-    </div>
+      </div>
+    </>
   )
 }

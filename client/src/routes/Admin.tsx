@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 
 // Types
 type PendingUser = { 
@@ -390,7 +391,14 @@ export function Admin(){
   }
 
   return (
-    <div className="container">
+    <>
+      <Helmet>
+        <title>Admin Panel | Snift Management</title>
+        <meta name="description" content="Snift admin panel for managing user profiles, approvals, and platform administration. Access restricted to authorized administrators only." />
+        <meta name="robots" content="noindex, nofollow" />
+        <link rel="canonical" href="https://thesnift.com/admin" />
+      </Helmet>
+      <div className="container">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <h2>Admin Panel</h2>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -1052,7 +1060,8 @@ export function Admin(){
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   )
 }
 

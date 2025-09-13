@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 
 export function Register(){
   const [form, setForm] = useState({
@@ -128,7 +129,13 @@ export function Register(){
 
   if(status==='submitted'){
     return (
-      <div className="min-h-screen" style={{backgroundColor: 'var(--page-background)', padding: '16px'}}>
+      <>
+        <Helmet>
+          <title>Registration Complete | Snift</title>
+          <meta name="description" content="Thank you for joining Snift! Your profile is under review. We'll notify you once approved to start connecting with meaningful people." />
+          <link rel="canonical" href="https://thesnift.com/register" />
+        </Helmet>
+        <div className="min-h-screen" style={{backgroundColor: 'var(--page-background)', padding: '16px'}}>
         <div className="flex items-center justify-center min-h-screen">
           <div className="form-card animate-fade-in text-center">
             <h2 className="font-heading text-2xl md:text-3xl font-semibold mb-4" style={{color: 'var(--primary-text)'}}>
@@ -145,12 +152,29 @@ export function Register(){
             </Link>
           </div>
         </div>
-      </div>
+        </div>
+      </>
     )
   }
 
   return (
-    <div className="min-h-screen" style={{backgroundColor: 'var(--page-background)', padding: '16px'}}>
+    <>
+      <Helmet>
+        <title>Join Snift | Create Your Profile - No Photo Dating App</title>
+        <meta name="description" content="Join Snift and create your profile in our unique no-photo dating app. Share your story, interests, and connect through meaningful conversations. Character finds connection." />
+        <meta name="keywords" content="join snift, sign up, create profile, no photo dating, character based dating, meaningful connections, dating app registration" />
+        <link rel="canonical" href="https://thesnift.com/register" />
+        
+        <meta property="og:title" content="Join Snift | Create Your Profile - No Photo Dating App" />
+        <meta property="og:description" content="Join Snift and create your profile in our unique no-photo dating app. Share your story, interests, and connect through meaningful conversations." />
+        <meta property="og:url" content="https://thesnift.com/register" />
+        <meta property="og:type" content="website" />
+        
+        <meta property="twitter:title" content="Join Snift | Create Your Profile - No Photo Dating App" />
+        <meta property="twitter:description" content="Join Snift and create your profile in our unique no-photo dating app. Share your story, interests, and connect through meaningful conversations." />
+        <meta property="twitter:url" content="https://thesnift.com/register" />
+      </Helmet>
+      <div className="min-h-screen" style={{backgroundColor: 'var(--page-background)', padding: '16px'}}>
       <div className="flex items-center justify-center min-h-screen">
         <div className="form-card animate-slide-up">
           <div className="text-center mb-8">
@@ -294,7 +318,8 @@ export function Register(){
           Submit for review
         </button>
       </div>
-    </div>
+      </div>
+    </>
   )
 }
 

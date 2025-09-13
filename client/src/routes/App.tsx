@@ -1,8 +1,27 @@
 import { Link } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 
 export function App() {
   return (
-    <div className="bg-background min-h-screen">
+    <>
+      <Helmet>
+        <title>Snift — Character Finds Connection | No Photo Dating App</title>
+        <meta name="description" content="Snift is a unique dating app where character finds connection. No photos, just meaningful conversations and emotional connections. Join thousands finding authentic relationships through words, not appearances." />
+        <meta name="keywords" content="conversation first dating, no photo dating app, emotional connections, character based dating, meaningful relationships, authentic dating, personality dating, text based dating, intellectual dating, deep connections" />
+        <link rel="canonical" href="https://thesnift.com/" />
+        
+        <meta property="og:title" content="Snift — Character Finds Connection | No Photo Dating App" />
+        <meta property="og:description" content="Experience authentic connections in a photo-free environment. Share your story, discover others, and connect when hearts align. Join Snift for meaningful relationships." />
+        <meta property="og:url" content="https://thesnift.com/" />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://thesnift.com/og-image.jpg" />
+        
+        <meta property="twitter:title" content="Snift — Character Finds Connection | No Photo Dating App" />
+        <meta property="twitter:description" content="Experience authentic connections in a photo-free environment. Share your story, discover others, and connect when hearts align." />
+        <meta property="twitter:url" content="https://thesnift.com/" />
+        <meta property="twitter:image" content="https://thesnift.com/og-image.jpg" />
+      </Helmet>
+      <div className="bg-background min-h-screen">
       <div className="container">
         <Hero />
         <Features />
@@ -11,7 +30,8 @@ export function App() {
         <Testimonials />
         <CTA />
       </div>
-    </div>
+      </div>
+    </>
   )
 }
 

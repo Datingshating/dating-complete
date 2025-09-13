@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 
 export function Login(){
   const nav = useNavigate()
@@ -48,7 +49,23 @@ export function Login(){
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-5">
+    <>
+      <Helmet>
+        <title>Login to Snift | Sign In to Your Account</title>
+        <meta name="description" content="Sign in to your Snift account to continue your journey of meaningful connections. Access your profile and discover authentic relationships." />
+        <meta name="keywords" content="snift login, sign in, dating app login, character based dating, no photo dating" />
+        <link rel="canonical" href="https://thesnift.com/login" />
+        
+        <meta property="og:title" content="Login to Snift | Sign In to Your Account" />
+        <meta property="og:description" content="Sign in to your Snift account to continue your journey of meaningful connections." />
+        <meta property="og:url" content="https://thesnift.com/login" />
+        <meta property="og:type" content="website" />
+        
+        <meta property="twitter:title" content="Login to Snift | Sign In to Your Account" />
+        <meta property="twitter:description" content="Sign in to your Snift account to continue your journey of meaningful connections." />
+        <meta property="twitter:url" content="https://thesnift.com/login" />
+      </Helmet>
+      <div className="min-h-screen bg-background flex items-center justify-center p-5">
       <div className="bg-card rounded-3xl p-8 md:p-12 max-w-md w-full shadow-xl animate-fade-in">
         <div className="text-center mb-10">
           <h1 className="font-heading text-3xl md:text-4xl font-black text-card-foreground mb-3">
@@ -114,6 +131,7 @@ export function Login(){
           </div>
         </form>
       </div>
-    </div>
+      </div>
+    </>
   )
 }
