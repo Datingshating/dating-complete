@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  
+  <!-- Main sitemap -->
+  <sitemap>
+    <loc>https://www.thesnift.com/sitemap.xml</loc>
+    <lastmod>2024-12-19</lastmod>
+  </sitemap>
+  
+  <!-- If you add a blog, create a separate sitemap for blog posts -->
+  <!-- <sitemap>
+    <loc>https://www.thesnift.com/sitemap-blog.xml</loc>
+    <lastmod>2024-12-19</lastmod>
+  </sitemap> -->
+  
+  <!-- If you add user-generated content, create a separate sitemap -->
+  <!-- <sitemap>
+    <loc>https://www.thesnift.com/sitemap-content.xml</loc>
+    <lastmod>2024-12-19</lastmod>
+  </sitemap> -->
+  
+</sitemapindex>
